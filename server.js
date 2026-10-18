@@ -98,6 +98,7 @@ const auth = (req, res, next) => (isAdmin(req) ? next() : res.status(401).json({
 
 const hits = new Map();
 const limit = (max, ms) => (req, res, next) => {
+  if (process.env.NO_RATE_LIMIT) return next(); // только для e2e
   const key = req.path + req.ip;
   const now = Date.now();
   const h = (hits.get(key) || []).filter(t => now - t < ms);
