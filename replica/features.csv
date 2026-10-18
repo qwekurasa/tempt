@@ -1,0 +1,27 @@
+feature,area,priority,original,clone,notes
+Сетка каталога с фото без фона,catalog,must,yes,partial,сейчас 3 колонки с карточками и фильтрами
+Подпись под фото моноширинным шрифтом,catalog,should,yes,no,
+Переключение плотности сетки 6/3 колонки,catalog,should,yes,no,кнопка «+»
+Фильтр по брендам,catalog,must,no,yes,параметр tempt вместо MALE/FEMALE
+Деление MALE/FEMALE,catalog,skip,yes,no,исключено по требованию
+Оверлей товара без смены страницы,product,should,yes,no,сейчас отдельная страница #/p/id
+Галерея с точками,product,must,yes,yes,
+Панель выбора размера,product,must,yes,partial,сейчас кнопки размеров в плашке
+Размерная сетка «?»,product,could,yes,no,
+Раскрываемое описание INFORMATION,product,should,yes,partial,описание всегда видно
+Статус «нет в наличии / restock»,product,could,yes,no,нужно поле в админке
+Корзина и оформление одной страницей,checkout,must,yes,yes,
+Пустая корзина,checkout,must,yes,yes,
+Контактные данные,checkout,must,yes,yes,ФИО / Telegram / телефон вместо email
+Выбор доставки блоками,checkout,must,yes,yes,ПВЗ Ozon / Яндекс / СДЭК
+Оплата картой на сайте,checkout,skip,yes,no,оплата по реквизитам через бота
+Промокод,checkout,could,yes,no,
+Налоги в сводке,checkout,skip,yes,no,не применимо
+Заказ в Telegram владельцу,checkout,must,no,yes,параметр tempt
+Бот с реквизитами клиенту,checkout,must,no,yes,параметр tempt
+Статус заказа,account,could,yes,no,
+Подписка на рассылку,marketing,skip,yes,no,канал в Telegram вместо email
+Cookie-баннер,legal,skip,yes,no,маркетинговых cookie нет
+Юр. страницы (контакты / оферта / приватность),legal,should,yes,no,
+Админка: добавление и редактирование товаров,admin,must,no,yes,параметр tempt
+Моноширинная типографика капсом,design,should,yes,partial,сейчас только на странице корзины
