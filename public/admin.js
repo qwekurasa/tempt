@@ -20,7 +20,7 @@ function showLogin() {
 async function showPanel() {
   $('#login').hidden = true;
   $('#panel').hidden = false;
-  products = await api('/api/products');
+  products = await api('/api/products?fresh');
   $('#count').textContent = products.length;
   $('#brand-list').innerHTML = [...new Set(products.map(p => p.brand))].map(b => `<option value="${esc(b)}">`).join('');
   $('#list').innerHTML = products.map(p => `

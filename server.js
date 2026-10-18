@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
-const { put, del, list } = require('@vercel/blob');
+const { put, del } = require('@vercel/blob');
 const seed = require('./data/products.json');
 
 const { PORT = 3000, ADMIN_PASSWORD, BOT_TOKEN, CHAT_ID } = process.env;
@@ -17,25 +17,24 @@ const removeImages = urls => {
   return b.length ? del(b) : null;
 };
 
-async function load() {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return structuredClone(seed);
-  const { blobs } = await list({ prefix: 'products/' });
-  if (!blobs.length) return structuredClone(seed);
-  const latest = blobs.reduce((a, b) => (a.uploadedAt > b.uploadedAt ? a : b));
-  const r = await fetch(latest.url);
+// Каталог читается по прямому URL через CDN (кэш до 60 с); fresh — в обход кэша, для админки и изменений.
+async function load(fresh) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) return structuredClone(seed);
+  const host = `https://${token.split('_')[3].toLowerCase()}.public.blob.vercel-storage.com`;
+  const r = await fetch(`${host}/products.json${fresh ? '?t=' + Date.now() : ''}`, { cache: 'no-store' });
+  if (r.status === 404) return structuredClone(seed);
   if (!r.ok) throw new Error('products: ' + r.status);
   return r.json();
 }
-async function save(items) {
-  const blob = await put('products/data.json', JSON.stringify(items), {
+const save = items =>
+  put('products.json', JSON.stringify(items), {
     access: 'public',
-    addRandomSuffix: true,
+    addRandomSuffix: false,
+    allowOverwrite: true,
     contentType: 'application/json',
+    cacheControlMaxAge: 60,
   });
-  const { blobs } = await list({ prefix: 'products/' });
-  const old = blobs.filter(b => b.url !== blob.url).map(b => b.url);
-  if (old.length) await del(old);
-}
 
 // --- auth ---
 const SECRET = crypto.createHash('sha256').update('tempt:' + (ADMIN_PASSWORD || crypto.randomUUID())).digest();
@@ -85,7 +84,7 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 
 app.get('/api/products', async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json(await load());
+  res.json(await load(isAdmin(req) && 'fresh' in req.query));
 });
 
 app.post('/api/login', limit(10, 15 * 60e3), (req, res) => {
@@ -113,7 +112,7 @@ app.post('/api/upload', auth, express.raw({ type: Object.keys(EXT), limit: '4mb'
 app.post('/api/products', auth, async (req, res) => {
   const p = productFields(req.body);
   if (!p) return res.status(400).json({ error: 'Заполните название, бренд и цену' });
-  const items = await load();
+  const items = await load(true);
   const product = { id: crypto.randomUUID(), ...p, createdAt: Date.now() };
   items.unshift(product);
   await save(items);
@@ -121,7 +120,7 @@ app.post('/api/products', auth, async (req, res) => {
 });
 
 app.put('/api/products/:id', auth, async (req, res) => {
-  const items = await load();
+  const items = await load(true);
   const product = items.find(x => x.id === req.params.id);
   if (!product) return res.status(404).json({ error: 'Товар не найден' });
   const p = productFields(req.body);
@@ -134,7 +133,7 @@ app.put('/api/products/:id', auth, async (req, res) => {
 });
 
 app.delete('/api/products/:id', auth, async (req, res) => {
-  const items = await load();
+  const items = await load(true);
   const i = items.findIndex(x => x.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: 'Товар не найден' });
   const [product] = items.splice(i, 1);
