@@ -109,7 +109,7 @@ function renderCart() {
   $('#cart-count').textContent = $('#cart-count2').textContent = count;
   $('#lines').innerHTML = lines.length
     ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${[l.size && 'Размер ' + esc(l.size), l.p.eta && 'Срок ' + esc(l.p.eta)].filter(Boolean).join(' · ')}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div>${rub(l.p.price * l.qty)}</div></div>`).join('')
-    : '<p class="co-empty">Корзина пуста</p>';
+    : '<p class="co-empty">Корзина пуста<br><a class="co-link" href="#/">Перейти в каталог</a></p>';
   $('#subtotal').textContent = $('#total').textContent = rub(total);
   $('#submit').disabled = !lines.length;
 }
