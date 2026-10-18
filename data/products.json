@@ -1,0 +1,212 @@
+[
+  {
+    "id": "demo-hoodie-1",
+    "name": "HOODIE 01",
+    "brand": "BRAND A",
+    "price": 14900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/hoodie.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-tee-1",
+    "name": "TEE 01",
+    "brand": "BRAND A",
+    "price": 5900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/tee.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-pant-1",
+    "name": "PANT 01",
+    "brand": "BRAND A",
+    "price": 11900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/pant.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-runner-1",
+    "name": "RUNNER 01",
+    "brand": "BRAND A",
+    "price": 18900,
+    "sizes": [
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/runner.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-hoodie-2",
+    "name": "HOODIE 02",
+    "brand": "BRAND B",
+    "price": 14900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/hoodie.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-tee-2",
+    "name": "TEE 02",
+    "brand": "BRAND B",
+    "price": 5900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/tee.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-pant-2",
+    "name": "PANT 02",
+    "brand": "BRAND B",
+    "price": 11900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/pant.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-runner-2",
+    "name": "RUNNER 02",
+    "brand": "BRAND B",
+    "price": 18900,
+    "sizes": [
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/runner.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-hoodie-3",
+    "name": "HOODIE 03",
+    "brand": "BRAND C",
+    "price": 14900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/hoodie.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-tee-3",
+    "name": "TEE 03",
+    "brand": "BRAND C",
+    "price": 5900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/tee.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-pant-3",
+    "name": "PANT 03",
+    "brand": "BRAND C",
+    "price": 11900,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/pant.svg"
+    ],
+    "createdAt": 0
+  },
+  {
+    "id": "demo-runner-3",
+    "name": "RUNNER 03",
+    "brand": "BRAND C",
+    "price": 18900,
+    "sizes": [
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45"
+    ],
+    "description": "Демо-товар",
+    "images": [
+      "/demo/runner.svg"
+    ],
+    "createdAt": 0
+  }
+]
