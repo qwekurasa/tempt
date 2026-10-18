@@ -111,12 +111,12 @@ const EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 
 
 function productFields(b) {
   const p = {
-    name: S(b.name),
-    brand: S(b.brand).toUpperCase(),
-    color: S(b.color).toUpperCase(),
+    name: S(b.name).slice(0, 120),
+    brand: S(b.brand).toUpperCase().slice(0, 60),
+    color: S(b.color).toUpperCase().slice(0, 60),
     price: Math.round(Number(b.price)),
-    sizes: S(b.sizes).split(',').map(s => s.trim()).filter(Boolean),
-    description: S(b.description),
+    sizes: S(b.sizes).split(',').map(s => s.trim().slice(0, 20)).filter(Boolean).slice(0, 30),
+    description: S(b.description).slice(0, 5000),
     soldOut: b.soldOut === true,
     images: Array.isArray(b.images) ? b.images.filter(isImage).slice(0, 10) : [],
   };
