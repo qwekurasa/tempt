@@ -18,6 +18,7 @@ const removeImages = urls => {
 };
 
 async function load() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return structuredClone(seed);
   const { blobs } = await list({ prefix: 'products/' });
   if (!blobs.length) return structuredClone(seed);
   const latest = blobs.reduce((a, b) => (a.uploadedAt > b.uploadedAt ? a : b));
