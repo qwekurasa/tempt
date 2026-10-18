@@ -8,12 +8,32 @@
 </head>
 <body>
 <header>
-  <nav id="brands"></nav>
+  <a class="home-link" href="#/">Каталог</a>
   <a class="logo" href="#/">TEMPT</a>
   <button class="cart-btn" id="open-cart">Корзина (<span id="cart-count">0</span>)</button>
 </header>
 
-<main class="grid" id="home"></main>
+<main class="catalog" id="home">
+  <div class="crumbs">Главная / Каталог</div>
+  <div class="bar">
+    <button id="filters-toggle">Фильтры</button>
+    <span class="count" id="count"></span>
+    <label class="sort">Сортировка:
+      <select id="sort">
+        <option value="new">сначала новые</option>
+        <option value="asc">дешевле</option>
+        <option value="desc">дороже</option>
+      </select>
+    </label>
+  </div>
+  <div class="layout">
+    <aside class="filters" id="filters"></aside>
+    <div>
+      <div class="cards" id="cards"></div>
+      <div class="pages" id="pages"></div>
+    </div>
+  </div>
+</main>
 
 <section class="product" id="product" hidden>
   <div class="media">
