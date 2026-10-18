@@ -7,6 +7,7 @@ let products = [];
 let brand = '';
 let current = null;
 let size = '';
+let homeScroll = 0;
 let cart = [];
 try { cart = JSON.parse(localStorage.getItem('cart')) || []; } catch {}
 
@@ -29,31 +30,60 @@ function renderNav() {
     .join('');
 }
 
-function renderGrid() {
+function showHome() {
+  const fromProduct = !$('#product').hidden;
+  $('#product').hidden = true;
+  $('#home').hidden = false;
+  document.body.classList.remove('soft');
+  document.title = 'TEMPT';
+  renderNav();
   const list = brand ? products.filter(p => p.brand === brand) : products;
-  $('#grid').innerHTML = list.length
-    ? list.map(p => `<button class="item" data-id="${esc(p.id)}"><div class="ph">${img(p.images[0])}</div><div class="meta"><span>${esc(p.name)}</span><span class="mute">${rub(p.price)}</span></div></button>`).join('')
+  $('#home').innerHTML = list.length
+    ? list.map(p => `<a class="item" href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div class="cap">${esc(p.name)}<br>${p.color ? esc(p.color) + '<br>' : ''}${rub(p.price)}</div></a>`).join('')
     : '<p class="empty">Нет товаров</p>';
+  scrollTo(0, fromProduct ? homeScroll : 0);
 }
 
 function renderAdd() {
   const need = current.sizes.length && !size;
   $('#add').disabled = need;
-  $('#add').textContent = need ? 'Выберите размер' : 'Добавить в корзину';
+  $('#add').textContent = need ? 'Выберите размер' : 'В корзину';
 }
 
-function openProduct(id) {
+function showProduct(id) {
   current = products.find(p => p.id === id);
+  if (!current) return (location.hash = '#/');
   size = '';
+  $('#home').hidden = true;
+  $('#product').hidden = false;
+  document.body.classList.add('soft');
+  document.title = `${current.name} — TEMPT`;
+  renderNav();
   $('#gallery').innerHTML = current.images.map(img).join('');
-  $('#p-brand').textContent = current.brand;
-  $('#p-name').textContent = current.name;
-  $('#p-price').textContent = rub(current.price);
+  $('#gallery').scrollLeft = 0;
+  $('#dots').innerHTML = current.images.length > 1 ? current.images.map((_, i) => `<button data-i="${i}" class="${i ? '' : 'on'}"></button>`).join('') : '';
+  $('#p-title').innerHTML = `${esc(current.brand)} – ${esc(current.name)}${current.color ? '<br>' + esc(current.color) : ''}`;
+  $('#p-overview').textContent = [
+    'Бренд: ' + current.brand,
+    current.color && 'Цвет: ' + current.color,
+    current.sizes.length && 'Размеры: ' + current.sizes.join(', '),
+  ].filter(Boolean).join('\n');
   $('#p-desc').textContent = current.description;
+  $('#p-desc-sec').hidden = !current.description;
   $('#sizes').innerHTML = current.sizes.map(s => `<button data-s="${esc(s)}">${esc(s)}</button>`).join('');
   $('#sizes').hidden = !current.sizes.length;
+  $('#p-price').textContent = rub(current.price);
   renderAdd();
-  show('#modal');
+  scrollTo(0, 0);
+}
+
+function route() {
+  hide();
+  const m = /^#\/p\/(.+)$/.exec(location.hash);
+  if (m) return showProduct(decodeURIComponent(m[1]));
+  const b = /^#\/b\/(.+)$/.exec(location.hash);
+  brand = b && products.some(p => p.brand === decodeURIComponent(b[1])) ? decodeURIComponent(b[1]) : '';
+  showHome();
 }
 
 function cartView(view) {
@@ -76,15 +106,19 @@ function renderCart() {
 
 $('#brands').onclick = e => {
   const b = e.target.closest('button');
-  if (!b) return;
-  brand = b.dataset.b;
-  history.replaceState(null, '', brand ? '#' + encodeURIComponent(brand) : location.pathname);
-  renderNav();
-  renderGrid();
+  if (b) location.hash = b.dataset.b ? '#/b/' + encodeURIComponent(b.dataset.b) : '#/';
 };
-$('#grid').onclick = e => {
-  const b = e.target.closest('.item');
-  if (b) openProduct(b.dataset.id);
+$('#home').onclick = e => {
+  if (e.target.closest('.item')) homeScroll = scrollY;
+};
+$('#gallery').onscroll = () => {
+  const g = $('#gallery');
+  const i = Math.round(g.scrollLeft / g.clientWidth);
+  $('#dots').querySelectorAll('button').forEach((d, j) => d.classList.toggle('on', i === j));
+};
+$('#dots').onclick = e => {
+  const d = e.target.closest('button');
+  if (d) $('#gallery').scrollTo({ left: d.dataset.i * $('#gallery').clientWidth, behavior: 'smooth' });
 };
 $('#sizes').onclick = e => {
   const b = e.target.closest('button');
@@ -98,7 +132,6 @@ $('#add').onclick = () => {
   l ? l.qty++ : cart.push({ id: current.id, size, qty: 1 });
   saveCart();
   renderCart();
-  hide();
   cartView('cart');
   show('#cart');
 };
@@ -115,9 +148,9 @@ $('#open-cart').onclick = () => { cartView('cart'); show('#cart'); };
 $('#to-checkout').onclick = () => cartView('checkout');
 $('#back').onclick = () => cartView('cart');
 $('#overlay').onclick = hide;
-$('#modal').onclick = e => { if (e.target === e.currentTarget) hide(); };
 document.querySelectorAll('[data-close]').forEach(b => (b.onclick = hide));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+addEventListener('hashchange', route);
 
 $('#checkout').onsubmit = async e => {
   e.preventDefault();
@@ -146,9 +179,6 @@ $('#checkout').onsubmit = async e => {
   products = await (await fetch('/api/products')).json();
   cart = cart.filter(l => products.some(p => p.id === l.id));
   saveCart();
-  const b = decodeURIComponent(location.hash.slice(1));
-  brand = products.some(p => p.brand === b) ? b : '';
-  renderNav();
-  renderGrid();
   renderCart();
+  route();
 })();

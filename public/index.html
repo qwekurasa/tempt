@@ -8,31 +8,34 @@
 </head>
 <body>
 <header>
-  <a class="logo" href="/">TEMPT</a>
   <nav id="brands"></nav>
-  <button id="open-cart">Корзина (<span id="cart-count">0</span>)</button>
+  <a class="logo" href="#/">TEMPT</a>
+  <button class="cart-btn" id="open-cart">Корзина (<span id="cart-count">0</span>)</button>
 </header>
 
-<main class="grid" id="grid"></main>
+<main class="grid" id="home"></main>
 
-<div class="overlay" id="overlay"></div>
-
-<div class="modal" id="modal">
-  <div class="modal-box">
-    <button class="modal-close" data-close>Закрыть</button>
+<section class="product" id="product" hidden>
+  <div class="media">
     <div class="gallery" id="gallery"></div>
-    <div class="info">
-      <div>
-        <div class="mute" id="p-brand"></div>
-        <div id="p-name"></div>
-        <div class="mute" id="p-price"></div>
-      </div>
-      <div class="sizes" id="sizes"></div>
-      <button class="btn" id="add"></button>
-      <p class="desc" id="p-desc"></p>
+    <div class="dots" id="dots"></div>
+  </div>
+  <div class="info">
+    <h1 class="title" id="p-title"></h1>
+    <div>
+      <div class="sec"><h3>Характеристики</h3><p id="p-overview"></p></div>
+      <div class="sec" id="p-desc-sec"><h3>Описание</h3><p id="p-desc"></p></div>
+      <div class="sec"><h3>Доставка</h3><p>Под заказ из Китая. Доставка до пункта выдачи Ozon, Яндекс или СДЭК — сроки уточним в Telegram.</p></div>
     </div>
   </div>
-</div>
+  <div class="pill">
+    <div class="sizes" id="sizes"></div>
+    <span class="price" id="p-price"></span>
+    <button class="add" id="add"></button>
+  </div>
+</section>
+
+<div class="overlay" id="overlay"></div>
 
 <aside class="drawer" id="cart">
   <div class="drawer-head"><span id="cart-title">Корзина</span><button data-close>Закрыть</button></div>
@@ -49,7 +52,7 @@
     <p class="note">Не меняйте ник до получения заказа — по нему мы свяжемся с вами.</p>
     <label>Телефон<input name="phone" type="tel" required placeholder="+7 900 000-00-00" autocomplete="tel"></label>
     <div>
-      <div class="mute" style="margin-bottom:6px">Пункт выдачи</div>
+      <div class="mute" style="margin-bottom:6px;font-size:13px">Пункт выдачи</div>
       <div class="seg">
         <label><input type="radio" name="service" value="ozon" required><span>Ozon</span></label>
         <label><input type="radio" name="service" value="yandex"><span>Яндекс</span></label>

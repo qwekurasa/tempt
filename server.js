@@ -67,6 +67,7 @@ function productFields(b) {
   const p = {
     name: S(b.name),
     brand: S(b.brand).toUpperCase(),
+    color: S(b.color).toUpperCase(),
     price: Math.round(Number(b.price)),
     sizes: S(b.sizes).split(',').map(s => s.trim()).filter(Boolean),
     description: S(b.description),

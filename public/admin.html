@@ -26,7 +26,7 @@
 </form>
 
 <div id="panel" hidden>
-  <header><a class="logo" href="/">TEMPT</a><button id="logout">Выйти</button></header>
+  <header><span></span><a class="logo" href="/">TEMPT</a><button id="logout">Выйти</button></header>
   <div class="wrap cols">
     <form class="form" id="pf">
       <div id="pf-title">Новый товар</div>
@@ -34,6 +34,7 @@
       <label>Название<input name="name" required maxlength="120"></label>
       <label>Бренд<input name="brand" required maxlength="60" list="brand-list"></label>
       <datalist id="brand-list"></datalist>
+      <label>Цвет<input name="color" maxlength="60" placeholder="Например: CREAM WHITE"></label>
       <label>Цена, ₽<input name="price" type="number" min="1" step="1" required></label>
       <label>Размеры через запятую<input name="sizes" placeholder="S, M, L или 40, 41, 42"></label>
       <label>Описание<textarea name="description" rows="4"></textarea></label>

@@ -14,7 +14,8 @@
     "images": [
       "/demo/hoodie.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "CREAM WHITE"
   },
   {
     "id": "demo-tee-1",
@@ -31,7 +32,8 @@
     "images": [
       "/demo/tee.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "KHAKI"
   },
   {
     "id": "demo-pant-1",
@@ -48,7 +50,8 @@
     "images": [
       "/demo/pant.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "CINDER"
   },
   {
     "id": "demo-runner-1",
@@ -67,7 +70,8 @@
     "images": [
       "/demo/runner.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "WHITE"
   },
   {
     "id": "demo-hoodie-2",
@@ -84,7 +88,8 @@
     "images": [
       "/demo/hoodie.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "CREAM WHITE"
   },
   {
     "id": "demo-tee-2",
@@ -101,7 +106,8 @@
     "images": [
       "/demo/tee.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "KHAKI"
   },
   {
     "id": "demo-pant-2",
@@ -118,7 +124,8 @@
     "images": [
       "/demo/pant.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "CINDER"
   },
   {
     "id": "demo-runner-2",
@@ -137,7 +144,8 @@
     "images": [
       "/demo/runner.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "WHITE"
   },
   {
     "id": "demo-hoodie-3",
@@ -154,7 +162,8 @@
     "images": [
       "/demo/hoodie.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "CREAM WHITE"
   },
   {
     "id": "demo-tee-3",
@@ -171,7 +180,8 @@
     "images": [
       "/demo/tee.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "KHAKI"
   },
   {
     "id": "demo-pant-3",
@@ -188,7 +198,8 @@
     "images": [
       "/demo/pant.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "CINDER"
   },
   {
     "id": "demo-runner-3",
@@ -207,6 +218,7 @@
     "images": [
       "/demo/runner.svg"
     ],
-    "createdAt": 0
+    "createdAt": 0,
+    "color": "WHITE"
   }
 ]
