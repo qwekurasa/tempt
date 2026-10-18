@@ -1,0 +1,49 @@
+{
+  "mode": "layout",
+  "original": {
+    "width": 480,
+    "height": 530
+  },
+  "clone": {
+    "width": 1440,
+    "height": 900
+  },
+  "compared_at": {
+    "width": 480,
+    "height": 300
+  },
+  "height_delta_pct": -43.4,
+  "score": 11.9,
+  "verdict": "different",
+  "regions": [
+    {
+      "x": 120,
+      "y": 80,
+      "w": 360,
+      "h": 240,
+      "cells": 29,
+      "where": "middle centre"
+    },
+    {
+      "x": 200,
+      "y": 0,
+      "w": 240,
+      "h": 80,
+      "cells": 9,
+      "where": "top right"
+    },
+    {
+      "x": 80,
+      "y": 80,
+      "w": 40,
+      "h": 40,
+      "cells": 1,
+      "where": "top left"
+    }
+  ],
+  "files": {
+    "original": "replica/screens/S02.png",
+    "clone": "replica/clone-screens/S02-desktop.png"
+  },
+  "diff_image": "replica/diffs/S02.png"
+}

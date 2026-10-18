@@ -4,3 +4,5 @@ node_modules
 uploads
 test-results
 playwright-report
+replica/screens
+replica/diffs/*.png

@@ -1,0 +1,33 @@
+{
+  "mode": "layout",
+  "original": {
+    "width": 480,
+    "height": 530
+  },
+  "clone": {
+    "width": 1440,
+    "height": 900
+  },
+  "compared_at": {
+    "width": 480,
+    "height": 300
+  },
+  "height_delta_pct": -43.4,
+  "score": 23.4,
+  "verdict": "different",
+  "regions": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 320,
+      "cells": 80,
+      "where": "middle centre"
+    }
+  ],
+  "files": {
+    "original": "replica/screens/S01.png",
+    "clone": "replica/clone-screens/S01-desktop.png"
+  },
+  "diff_image": "replica/diffs/S01.png"
+}
