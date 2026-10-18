@@ -16,16 +16,15 @@ try { cart = JSON.parse(localStorage.getItem('cart')) || []; } catch {}
 
 const saveCart = () => localStorage.setItem('cart', JSON.stringify(cart));
 
-function show(sel) {
-  $(sel).classList.add('open');
-  $('#overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function hide() {
-  document.querySelectorAll('.open').forEach(el => el.classList.remove('open'));
-  document.body.style.overflow = '';
+function view(name) {
+  const wasProduct = !$('#product').hidden;
+  ['home', 'product', 'cartpage'].forEach(id => ($('#' + id).hidden = id !== name));
+  document.body.classList.toggle('soft', name === 'product');
+  document.body.classList.toggle('co', name === 'cartpage');
+  return wasProduct;
 }
 
+// --- каталог ---
 const uniq = arr => [...new Set(arr.filter(Boolean))];
 const GROUPS = [
   ['brand', 'Бренды', () => uniq(products.map(p => p.brand)).sort()],
@@ -49,29 +48,28 @@ function renderCards() {
   if (sort !== 'new') list.sort((a, b) => (sort === 'asc' ? a.price - b.price : b.price - a.price));
   const pages = Math.max(1, Math.ceil(list.length / PER));
   page = Math.min(page, pages);
-  $('#count').textContent = `${list.length} ${list.length % 10 === 1 && list.length % 100 !== 11 ? 'товар' : [2, 3, 4].includes(list.length % 10) && ![12, 13, 14].includes(list.length % 100) ? 'товара' : 'товаров'}`;
-  $('#cards').innerHTML = list.length
+  const n = list.length;
+  $('#count').textContent = `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'товар' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'товара' : 'товаров'}`;
+  $('#cards').innerHTML = n
     ? list.slice((page - 1) * PER, page * PER).map(p => `<a class="card" href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div class="meta"><span>${esc(p.name)}</span><span>${rub(p.price)}</span></div></a>`).join('')
     : '<p class="empty">Ничего не найдено</p>';
-  const nums = [...Array(pages).keys()].map(i => i + 1).filter(n => n === 1 || n === pages || Math.abs(n - page) <= 1);
+  const nums = [...Array(pages).keys()].map(i => i + 1).filter(k => k === 1 || k === pages || Math.abs(k - page) <= 1);
   $('#pages').innerHTML = pages > 1
     ? `<button data-p="${page - 1}"${page === 1 ? ' disabled' : ''}>‹</button>` +
-      nums.map((n, i) => (i && n - nums[i - 1] > 1 ? '<span>…</span>' : '') + `<button data-p="${n}" class="${n === page ? 'on' : ''}">${n}</button>`).join('') +
+      nums.map((k, i) => (i && k - nums[i - 1] > 1 ? '<span>…</span>' : '') + `<button data-p="${k}" class="${k === page ? 'on' : ''}">${k}</button>`).join('') +
       `<button data-p="${page + 1}"${page === pages ? ' disabled' : ''}>›</button>`
     : '';
 }
 
 function showHome() {
-  const fromProduct = !$('#product').hidden;
-  $('#product').hidden = true;
-  $('#home').hidden = false;
-  document.body.classList.remove('soft');
+  const fromProduct = view('home');
   document.title = 'TEMPT';
   renderFilters();
   renderCards();
   scrollTo(0, fromProduct ? homeScroll : 0);
 }
 
+// --- товар ---
 function renderAdd() {
   const need = current.sizes.length && !size;
   $('#add').disabled = need;
@@ -82,9 +80,7 @@ function showProduct(id) {
   current = products.find(p => p.id === id);
   if (!current) return (location.hash = '#/');
   size = '';
-  $('#home').hidden = true;
-  $('#product').hidden = false;
-  document.body.classList.add('soft');
+  view('product');
   document.title = `${current.name} — TEMPT`;
   $('#gallery').innerHTML = current.images.map(img).join('');
   $('#gallery').scrollLeft = 0;
@@ -104,33 +100,38 @@ function showProduct(id) {
   scrollTo(0, 0);
 }
 
+// --- корзина ---
+function renderCart() {
+  const lines = cart.map(l => ({ ...l, p: products.find(p => p.id === l.id) }));
+  const total = lines.reduce((s, l) => s + l.p.price * l.qty, 0);
+  const count = cart.reduce((s, l) => s + l.qty, 0);
+  $('#cart-count').textContent = $('#cart-count2').textContent = count;
+  $('#lines').innerHTML = lines.length
+    ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${l.size ? 'Размер ' + esc(l.size) : ''}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div>${rub(l.p.price * l.qty)}</div></div>`).join('')
+    : '<p class="co-empty">Корзина пуста</p>';
+  $('#subtotal').textContent = $('#total').textContent = rub(total);
+  $('#submit').disabled = !lines.length;
+}
+
+function showCart() {
+  view('cartpage');
+  document.title = 'Корзина — TEMPT';
+  $('#co-main').hidden = false;
+  $('#done').hidden = true;
+  renderCart();
+  scrollTo(0, 0);
+}
+
 function route() {
-  hide();
   const m = /^#\/p\/(.+)$/.exec(location.hash);
   if (m) return showProduct(decodeURIComponent(m[1]));
+  if (location.hash === '#/cart') return showCart();
   const b = /^#\/b\/(.+)$/.exec(location.hash);
   if (b) sel.brand = new Set([decodeURIComponent(b[1])]);
   showHome();
 }
 
-function cartView(view) {
-  $('#view-cart').hidden = $('#foot-cart').hidden = view !== 'cart';
-  $('#checkout').hidden = view !== 'checkout';
-  $('#done').hidden = view !== 'done';
-  $('#cart-title').textContent = view === 'checkout' ? 'Оформление' : 'Корзина';
-}
-
-function renderCart() {
-  const lines = cart.map(l => ({ ...l, p: products.find(p => p.id === l.id) }));
-  const total = lines.reduce((s, l) => s + l.p.price * l.qty, 0);
-  $('#cart-count').textContent = cart.reduce((s, l) => s + l.qty, 0);
-  $('#lines').innerHTML = lines.length
-    ? lines.map((l, i) => `<div class="line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.name)}</div><div class="mute">${esc(l.p.brand)}${l.size ? ' · ' + esc(l.size) : ''}</div><div class="qty"><button data-i="${i}" data-d="-1">−</button>${l.qty}<button data-i="${i}" data-d="1">+</button></div></div><div>${rub(l.p.price * l.qty)}</div></div>`).join('')
-    : '<p class="mute">Корзина пуста</p>';
-  $('#total').textContent = $('#total2').textContent = rub(total);
-  $('#to-checkout').disabled = !lines.length;
-}
-
+// --- события ---
 $('#filters').onchange = e => {
   const { g } = e.target.dataset;
   e.target.checked ? sel[g].add(e.target.value) : sel[g].delete(e.target.value);
@@ -181,8 +182,8 @@ $('#add').onclick = () => {
   l ? l.qty++ : cart.push({ id: current.id, size, qty: 1 });
   saveCart();
   renderCart();
-  cartView('cart');
-  show('#cart');
+  $('#add').textContent = 'Добавлено ✓';
+  setTimeout(() => current && renderAdd(), 1500);
 };
 $('#lines').onclick = e => {
   const b = e.target.closest('button');
@@ -193,12 +194,7 @@ $('#lines').onclick = e => {
   saveCart();
   renderCart();
 };
-$('#open-cart').onclick = () => { cartView('cart'); show('#cart'); };
-$('#to-checkout').onclick = () => cartView('checkout');
-$('#back').onclick = () => cartView('cart');
-$('#overlay').onclick = hide;
-document.querySelectorAll('[data-close]').forEach(b => (b.onclick = hide));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+$('#back').onclick = () => (history.length > 1 ? history.back() : (location.hash = '#/'));
 addEventListener('hashchange', route);
 
 $('#checkout').onsubmit = async e => {
@@ -216,11 +212,18 @@ $('#checkout').onsubmit = async e => {
     renderCart();
     e.target.reset();
     $('#order-id').textContent = '#' + j.id;
-    cartView('done');
+    $('#bot-link').hidden = !j.bot;
+    $('#done-text').textContent = j.bot
+      ? 'Нажмите кнопку ниже и Start в боте — пришлём состав заказа и реквизиты для оплаты.'
+      : 'Мы свяжемся с вами в Telegram и пришлём реквизиты для оплаты.';
+    if (j.bot) $('#bot-link').href = `https://t.me/${encodeURIComponent(j.bot)}?start=${j.id}`;
+    $('#co-main').hidden = true;
+    $('#done').hidden = false;
+    scrollTo(0, 0);
   } catch (err) {
     $('#err').textContent = err.message;
   } finally {
-    $('#submit').disabled = false;
+    $('#submit').disabled = !cart.length;
   }
 };
 

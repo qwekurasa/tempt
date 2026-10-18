@@ -10,7 +10,7 @@
 <header>
   <a class="home-link" href="#/">Каталог</a>
   <a class="logo" href="#/">TEMPT</a>
-  <button class="cart-btn" id="open-cart">Корзина (<span id="cart-count">0</span>)</button>
+  <a class="cart-btn" href="#/cart">Корзина (<span id="cart-count">0</span>)</a>
 </header>
 
 <main class="catalog" id="home">
@@ -55,42 +55,50 @@
   </div>
 </section>
 
-<div class="overlay" id="overlay"></div>
-
-<aside class="drawer" id="cart">
-  <div class="drawer-head"><span id="cart-title">Корзина</span><button data-close>Закрыть</button></div>
-
-  <div class="drawer-body" id="view-cart"><div id="lines"></div></div>
-  <div class="drawer-foot" id="foot-cart">
-    <div class="total"><span>Итого</span><span id="total"></span></div>
-    <button class="btn" id="to-checkout">Оформить заказ</button>
+<section class="checkout" id="cartpage" hidden>
+  <div class="co-top">
+    <button class="co-back" id="back" aria-label="Назад">←</button>
+    <span>Корзина (<span id="cart-count2">0</span>)</span>
   </div>
 
-  <form class="drawer-body form" id="checkout" hidden>
-    <label>ФИО<input name="name" required minlength="3" maxlength="150" autocomplete="name"></label>
-    <label>Telegram ник<input name="tg" required placeholder="@username" pattern="@?[A-Za-z0-9_]{5,32}" autocomplete="off"></label>
-    <p class="note">Не меняйте ник до получения заказа — по нему мы свяжемся с вами.</p>
-    <label>Телефон<input name="phone" type="tel" required placeholder="+7 900 000-00-00" autocomplete="tel"></label>
-    <div>
-      <div class="mute" style="margin-bottom:6px;font-size:13px">Пункт выдачи</div>
-      <div class="seg">
-        <label><input type="radio" name="service" value="ozon" required><span>Ozon</span></label>
-        <label><input type="radio" name="service" value="yandex"><span>Яндекс</span></label>
-        <label><input type="radio" name="service" value="cdek"><span>СДЭК</span></label>
+  <div class="co-grid" id="co-main">
+    <form class="co-form" id="checkout">
+      <h2>Контактные данные</h2>
+      <label>ФИО<input name="name" required minlength="3" maxlength="150" autocomplete="name" placeholder="Иванов Иван Иванович"></label>
+      <label>Telegram ник<input name="tg" required placeholder="@username" pattern="@?[A-Za-z0-9_]{5,32}" autocomplete="off"></label>
+      <p class="co-note">Не меняйте ник до получения заказа — по нему мы свяжемся с вами и пришлём реквизиты.</p>
+      <label>Телефон<input name="phone" type="tel" required placeholder="+7 900 000-00-00" autocomplete="tel"></label>
+
+      <h2>Доставка</h2>
+      <div class="co-opts">
+        <label><input type="radio" name="service" value="ozon" required><span><span>Ozon<small>Пункт выдачи Ozon</small></span></span></label>
+        <label><input type="radio" name="service" value="yandex"><span><span>Яндекс<small>Пункт выдачи Яндекс Маркета</small></span></span></label>
+        <label><input type="radio" name="service" value="cdek"><span><span>СДЭК<small>Пункт выдачи СДЭК</small></span></span></label>
       </div>
-    </div>
-    <label>Точный адрес пункта выдачи<textarea name="address" rows="3" required minlength="5" maxlength="300" placeholder="Город, улица, дом"></textarea></label>
-    <p class="err" id="err"></p>
-    <div class="total"><span>Итого</span><span id="total2"></span></div>
-    <button class="btn" id="submit">Отправить заказ</button>
-    <button class="btn ghost" type="button" id="back">Назад</button>
-  </form>
+      <label>Точный адрес пункта выдачи<textarea name="address" rows="3" required minlength="5" maxlength="300" placeholder="Город, улица, дом"></textarea></label>
 
-  <div class="drawer-body" id="done" hidden>
-    <p>Заказ <span id="order-id"></span> принят.</p>
-    <p class="mute" style="margin-top:12px">Мы свяжемся с вами в Telegram.</p>
+      <p class="err" id="err"></p>
+      <button class="co-btn" id="submit">Оформить заказ</button>
+    </form>
+
+    <aside class="co-sum">
+      <h2>Ваш заказ</h2>
+      <div id="lines"></div>
+      <div class="co-rows">
+        <div class="co-row"><span>Товары</span><span id="subtotal"></span></div>
+        <div class="co-row"><span>Доставка</span><span>По тарифу службы</span></div>
+        <div class="co-row co-total"><span>Итого</span><span id="total"></span></div>
+      </div>
+    </aside>
   </div>
-</aside>
+
+  <div class="co-done" id="done" hidden>
+    <h2>Заказ <span id="order-id"></span> оформлен</h2>
+    <p id="done-text"></p>
+    <a class="co-btn" id="bot-link" target="_blank" rel="noopener">Получить реквизиты в Telegram</a>
+    <a class="co-link" href="#/">Вернуться в каталог</a>
+  </div>
+</section>
 
 <script src="/app.js"></script>
 </body>

@@ -107,6 +107,15 @@ form.onsubmit = async e => {
 
 $('#pf-cancel').onclick = resetForm;
 
+$('#bot-setup').onclick = async () => {
+  try {
+    const j = await api('/api/tg-setup', { method: 'POST' });
+    alert(`Бот @${j.bot} подключён`);
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
 $('#list').onclick = async e => {
   const edit = e.target.dataset.edit, del = e.target.dataset.del;
   if (edit) {
