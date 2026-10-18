@@ -117,6 +117,7 @@ function productFields(b) {
     price: Math.round(Number(b.price)),
     sizes: S(b.sizes).split(',').map(s => s.trim()).filter(Boolean),
     description: S(b.description),
+    soldOut: b.soldOut === true,
     images: Array.isArray(b.images) ? b.images.filter(isImage).slice(0, 10) : [],
   };
   return p.name && p.brand && p.price > 0 ? p : null;
@@ -200,6 +201,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
   if (!/^\+?[\d\s()-]{10,20}$/.test(phone)) return res.status(400).json({ error: 'Некорректный номер телефона' });
   if (!service) return res.status(400).json({ error: 'Выберите службу доставки' });
   if (address.length < 5 || address.length > 300) return res.status(400).json({ error: 'Укажите адрес пункта выдачи' });
+  if (b.consent !== 'on') return res.status(400).json({ error: 'Нужно согласие на обработку персональных данных' });
 
   const products = await load();
   const items = Array.isArray(b.items) ? b.items.slice(0, 50) : [];
@@ -212,6 +214,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     if (!p || !(qty >= 1 && qty <= 20) || (p.sizes.length ? !p.sizes.includes(size) : size)) {
       return res.status(400).json({ error: 'Корзина устарела, обновите страницу' });
     }
+    if (p.soldOut) return res.status(400).json({ error: `Товар закончился: ${p.name}` });
     total += p.price * qty;
     lines.push(`${lines.length + 1}. ${p.brand} — ${p.name}${size ? ' · ' + size : ''} × ${qty} = ${rub(p.price * qty)}`);
   }

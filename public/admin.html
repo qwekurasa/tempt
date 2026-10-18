@@ -9,10 +9,10 @@
 <style>
   .wrap{max-width:1100px;margin:0 auto;padding:24px}
   .cols{display:grid;grid-template-columns:380px 1fr;gap:40px;align-items:start}
-  .row{display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+  .row{display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
   .row .ph{width:56px}
   .actions{display:flex;gap:16px}
-  .actions button:hover{color:var(--mute)}
+  .actions button:hover{color:var(--text-muted)}
   #login{max-width:340px;margin:20vh auto 0}
   @media (max-width:800px){.cols{grid-template-columns:1fr}}
 </style>
@@ -37,6 +37,7 @@
       <label>Цвет<input name="color" maxlength="60" placeholder="Например: CREAM WHITE"></label>
       <label>Цена, ₽<input name="price" type="number" min="1" step="1" required></label>
       <label>Размеры через запятую<input name="sizes" placeholder="S, M, L или 40, 41, 42"></label>
+      <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="soldOut">Нет в наличии</label>
       <label>Описание<textarea name="description" rows="4"></textarea></label>
       <label>Фото (до 10, первое — обложка)<input name="images" type="file" accept="image/*" multiple></label>
       <p class="note" id="img-note" hidden>Новые фото заменят текущие. Не выбирайте, чтобы оставить старые.</p>

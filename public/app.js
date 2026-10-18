@@ -51,7 +51,7 @@ function renderCards() {
   const n = list.length;
   $('#count').textContent = `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'товар' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'товара' : 'товаров'}`;
   $('#cards').innerHTML = n
-    ? list.slice((page - 1) * PER, page * PER).map(p => `<a class="card" href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div class="meta"><span>${esc(p.name)}</span><span>${rub(p.price)}</span></div></a>`).join('')
+    ? list.slice((page - 1) * PER, page * PER).map(p => `<a class="card" href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div class="meta"><span>${esc(p.name)}</span><span>${p.soldOut ? 'Нет в наличии' : rub(p.price)}</span></div></a>`).join('')
     : '<p class="empty">Ничего не найдено</p>';
   const nums = [...Array(pages).keys()].map(i => i + 1).filter(k => k === 1 || k === pages || Math.abs(k - page) <= 1);
   $('#pages').innerHTML = pages > 1
@@ -72,8 +72,8 @@ function showHome() {
 // --- товар ---
 function renderAdd() {
   const need = current.sizes.length && !size;
-  $('#add').disabled = need;
-  $('#add').textContent = need ? 'Выберите размер' : 'В корзину';
+  $('#add').disabled = current.soldOut || need;
+  $('#add').textContent = current.soldOut ? 'Нет в наличии' : need ? 'Выберите размер' : 'В корзину';
 }
 
 function showProduct(id) {

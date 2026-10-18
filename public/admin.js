@@ -26,7 +26,7 @@ async function showPanel() {
   $('#list').innerHTML = products.map(p => `
     <div class="row">
       <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
-      <div><div>${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}</div></div>
+      <div><div>${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
       <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-del="${esc(p.id)}">Удалить</button></div>
     </div>`).join('');
 }
@@ -89,7 +89,7 @@ form.onsubmit = async e => {
       }
     }
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
     await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -124,6 +124,7 @@ $('#list').onclick = async e => {
     form.name.value = p.name;
     form.brand.value = p.brand;
     form.color.value = p.color || '';
+    form.soldOut.checked = !!p.soldOut;
     form.price.value = p.price;
     form.sizes.value = p.sizes.join(', ');
     form.description.value = p.description;

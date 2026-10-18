@@ -1,15 +1,15 @@
 feature,area,priority,original,clone,notes
-Сетка каталога с фото без фона,catalog,must,yes,partial,сейчас 3 колонки с карточками и фильтрами
+Сетка каталога с фото без фона,catalog,must,yes,yes,"карточки на светлой подложке, по референсу пользователя"
 Подпись под фото моноширинным шрифтом,catalog,should,yes,no,
-Переключение плотности сетки 6/3 колонки,catalog,should,yes,no,кнопка «+»
+Переключение плотности сетки 6/3 колонки,catalog,should,yes,skip,конфликтует с сайдбаром фильтров по референсу пользователя
 Фильтр по брендам,catalog,must,no,yes,параметр tempt вместо MALE/FEMALE
 Деление MALE/FEMALE,catalog,skip,yes,no,исключено по требованию
-Оверлей товара без смены страницы,product,should,yes,no,сейчас отдельная страница #/p/id
+Оверлей товара без смены страницы,product,should,yes,skip,отдельная страница товара по референсу пользователя
 Галерея с точками,product,must,yes,yes,
-Панель выбора размера,product,must,yes,partial,сейчас кнопки размеров в плашке
+Панель выбора размера,product,must,yes,yes,размеры в плашке покупки
 Размерная сетка «?»,product,could,yes,no,
-Раскрываемое описание INFORMATION,product,should,yes,partial,описание всегда видно
-Статус «нет в наличии / restock»,product,could,yes,no,нужно поле в админке
+Раскрываемое описание INFORMATION,product,should,yes,skip,заменено открытыми секциями по референсу пользователя
+Статус «нет в наличии / restock»,product,could,yes,partial,"флаг «Нет в наличии» в админке, без даты restock"
 Корзина и оформление одной страницей,checkout,must,yes,yes,
 Пустая корзина,checkout,must,yes,yes,
 Контактные данные,checkout,must,yes,yes,ФИО / Telegram / телефон вместо email
@@ -22,6 +22,6 @@ feature,area,priority,original,clone,notes
 Статус заказа,account,could,yes,no,
 Подписка на рассылку,marketing,skip,yes,no,канал в Telegram вместо email
 Cookie-баннер,legal,skip,yes,no,маркетинговых cookie нет
-Юр. страницы (контакты / оферта / приватность),legal,should,yes,no,
+Юр. страницы (контакты / оферта / приватность),legal,should,yes,partial,"политика ПД + согласие в форме; реквизиты оператора — заглушки, оферты нет"
 Админка: добавление и редактирование товаров,admin,must,no,yes,параметр tempt
-Моноширинная типографика капсом,design,should,yes,partial,сейчас только на странице корзины
+Моноширинная типографика капсом,design,should,yes,partial,"только корзина/оформление, по референсу пользователя"
