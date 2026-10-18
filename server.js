@@ -67,19 +67,50 @@ ${PAYMENT_DETAILS || 'менеджер пришлёт их отдельно'}
 
 После оплаты пришлите, пожалуйста, скриншот чека в этот чат.`;
 
+const loadOrder = async id => {
+  const r = blobHost() && (await fetch(`${blobHost()}/orders/${id}.json?t=${Date.now()}`, { cache: 'no-store' }));
+  return r && r.ok ? r.json() : null;
+};
+const saveOrder = order =>
+  put(`orders/${order.id}.json`, JSON.stringify(order), { access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json' });
+
+// Команды владельца в чате CHAT_ID: /status ID текст, /msg CHAT текст
+async function onOwnerMessage(msg) {
+  const reply = text => tg('sendMessage', { chat_id: msg.chat.id, text });
+  const st = /^\/status(?:@\w+)?\s+#?([0-9A-Fa-f]{12})\s+([\s\S]+)$/.exec(msg.text || '');
+  if (st) {
+    const order = await loadOrder(st[1].toUpperCase());
+    if (!order) return reply('Заказ не найден.');
+    if (!order.chat) return reply(`Клиент @${order.tg} ещё не открыл бота — статус отправить некуда.`);
+    await tg('sendMessage', { chat_id: order.chat, text: `Заказ #${order.id}: ${st[2].trim()}` });
+    return reply(`Отправлено @${order.tg}.`);
+  }
+  const dm = /^\/msg(?:@\w+)?\s+(-?\d+)\s+([\s\S]+)$/.exec(msg.text || '');
+  if (dm) {
+    await tg('sendMessage', { chat_id: dm[1], text: dm[2].trim() });
+    return reply('Отправлено.');
+  }
+  if ((msg.text || '').startsWith('/')) {
+    return reply('Команды:\n/status ID текст — статус заказа клиенту\n/msg ЧАТ текст — ответ клиенту (номер чата приходит вместе с его сообщением)');
+  }
+}
+
 async function onBotMessage(msg) {
   const chat_id = msg.chat.id;
   const m = /^\/start(?:\s+([0-9A-F]{12}))?$/.exec(msg.text || '');
-  if (!m) return tg('forwardMessage', { chat_id: CHAT_ID, from_chat_id: chat_id, message_id: msg.message_id });
+  if (!m) {
+    await tg('sendMessage', { chat_id: CHAT_ID, text: `💬 @${msg.from.username || 'без ника'} · чат ${chat_id}\nОтветить: /msg ${chat_id} текст` });
+    return tg('forwardMessage', { chat_id: CHAT_ID, from_chat_id: chat_id, message_id: msg.message_id });
+  }
   if (!m[1]) return tg('sendMessage', { chat_id, text: 'Здравствуйте! Оформите заказ на сайте — после оформления здесь появятся состав заказа и реквизиты для оплаты.' });
-  const r = blobHost() && (await fetch(`${blobHost()}/orders/${m[1]}.json`));
-  if (!r || !r.ok) return tg('sendMessage', { chat_id, text: 'Заказ не найден.' });
-  const order = await r.json();
+  const order = await loadOrder(m[1]);
+  if (!order) return tg('sendMessage', { chat_id, text: 'Заказ не найден.' });
   if ((msg.from.username || '').toLowerCase() !== order.tg.toLowerCase()) {
     return tg('sendMessage', { chat_id, text: `Заказ оформлен на другой Telegram-ник. Откройте бота с аккаунта @${order.tg}.` });
   }
   await tg('sendMessage', { chat_id, text: orderText(order) });
-  await tg('sendMessage', { chat_id: CHAT_ID, text: `Клиент @${order.tg} получил реквизиты по заказу #${order.id}` });
+  if (order.chat !== chat_id) await saveOrder({ ...order, chat: chat_id });
+  await tg('sendMessage', { chat_id: CHAT_ID, text: `Клиент @${order.tg} получил реквизиты по заказу #${order.id}\nСтатус: /status ${order.id} текст` });
 }
 
 // --- auth ---
@@ -119,6 +150,7 @@ function productFields(b) {
     sizes: S(b.sizes).split(',').map(s => s.trim().slice(0, 20)).filter(Boolean).slice(0, 30),
     description: S(b.description).slice(0, 5000),
     soldOut: b.soldOut === true,
+    eta: S(b.eta).slice(0, 40),
     images: Array.isArray(b.images) ? b.images.filter(isImage).slice(0, 10) : [],
   };
   return p.name && p.brand && p.price > 0 ? p : null;
@@ -217,7 +249,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     }
     if (p.soldOut) return res.status(400).json({ error: `Товар закончился: ${p.name}` });
     total += p.price * qty;
-    lines.push(`${lines.length + 1}. ${p.brand} — ${p.name}${size ? ' · ' + size : ''} × ${qty} = ${rub(p.price * qty)}`);
+    lines.push(`${lines.length + 1}. ${p.brand} — ${p.name}${size ? ' · ' + size : ''} × ${qty} = ${rub(p.price * qty)}${p.eta ? `, срок ${p.eta}` : ''}`);
   }
   if (!lines.length) return res.status(400).json({ error: 'Корзина пуста' });
   if (!BOT_TOKEN || !CHAT_ID) return res.status(500).json({ error: 'Приём заказов не настроен' });
@@ -246,7 +278,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
   let bot = null;
   if (blobHost()) {
     try {
-      await put(`orders/${id}.json`, JSON.stringify({ id, name, tg: nick, lines, total }), { access: 'public', addRandomSuffix: false, contentType: 'application/json' });
+      await saveOrder({ id, name, tg: nick, lines, total });
       bot = await botUsername();
     } catch (e) {
       console.error('order save:', e.message);
@@ -259,7 +291,8 @@ app.post('/api/tg-webhook', async (req, res) => {
   if (!sameHash(S(req.get('X-Telegram-Bot-Api-Secret-Token')), sign('webhook'))) return res.sendStatus(403);
   const msg = req.body.message;
   try {
-    if (msg && msg.chat.type === 'private') await onBotMessage(msg);
+    if (msg && String(msg.chat.id) === String(CHAT_ID)) await onOwnerMessage(msg);
+    else if (msg && msg.chat.type === 'private') await onBotMessage(msg);
   } catch (e) {
     console.error('webhook:', e.message);
   }

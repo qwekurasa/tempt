@@ -93,6 +93,7 @@ function showProduct(id) {
   ].filter(Boolean).join('\n');
   $('#p-desc').textContent = current.description;
   $('#p-desc-sec').hidden = !current.description;
+  $('#p-ship').textContent = (current.eta ? `Срок доставки: ${current.eta}.\n` : '') + 'Под заказ из Китая, до пункта выдачи Ozon, Яндекс или СДЭК. Статус заказа пришлём в Telegram.';
   $('#sizes').innerHTML = current.sizes.map(s => `<button data-s="${esc(s)}">${esc(s)}</button>`).join('');
   $('#sizes').hidden = !current.sizes.length;
   $('#p-price').textContent = rub(current.price);
@@ -107,7 +108,7 @@ function renderCart() {
   const count = cart.reduce((s, l) => s + l.qty, 0);
   $('#cart-count').textContent = $('#cart-count2').textContent = count;
   $('#lines').innerHTML = lines.length
-    ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${l.size ? 'Размер ' + esc(l.size) : ''}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div>${rub(l.p.price * l.qty)}</div></div>`).join('')
+    ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${[l.size && 'Размер ' + esc(l.size), l.p.eta && 'Срок ' + esc(l.p.eta)].filter(Boolean).join(' · ')}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div>${rub(l.p.price * l.qty)}</div></div>`).join('')
     : '<p class="co-empty">Корзина пуста</p>';
   $('#subtotal').textContent = $('#total').textContent = rub(total);
   $('#submit').disabled = !lines.length;

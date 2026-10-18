@@ -15,7 +15,8 @@
       "/demo/hoodie.svg"
     ],
     "createdAt": 0,
-    "color": "CREAM WHITE"
+    "color": "CREAM WHITE",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-tee-1",
@@ -33,7 +34,8 @@
       "/demo/tee.svg"
     ],
     "createdAt": 0,
-    "color": "KHAKI"
+    "color": "KHAKI",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-pant-1",
@@ -51,7 +53,8 @@
       "/demo/pant.svg"
     ],
     "createdAt": 0,
-    "color": "CINDER"
+    "color": "CINDER",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-runner-1",
@@ -71,7 +74,8 @@
       "/demo/runner.svg"
     ],
     "createdAt": 0,
-    "color": "WHITE"
+    "color": "WHITE",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-hoodie-2",
@@ -89,7 +93,8 @@
       "/demo/hoodie.svg"
     ],
     "createdAt": 0,
-    "color": "CREAM WHITE"
+    "color": "CREAM WHITE",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-tee-2",
@@ -107,7 +112,8 @@
       "/demo/tee.svg"
     ],
     "createdAt": 0,
-    "color": "KHAKI"
+    "color": "KHAKI",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-pant-2",
@@ -125,7 +131,8 @@
       "/demo/pant.svg"
     ],
     "createdAt": 0,
-    "color": "CINDER"
+    "color": "CINDER",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-runner-2",
@@ -145,7 +152,8 @@
       "/demo/runner.svg"
     ],
     "createdAt": 0,
-    "color": "WHITE"
+    "color": "WHITE",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-hoodie-3",
@@ -163,7 +171,8 @@
       "/demo/hoodie.svg"
     ],
     "createdAt": 0,
-    "color": "CREAM WHITE"
+    "color": "CREAM WHITE",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-tee-3",
@@ -181,7 +190,8 @@
       "/demo/tee.svg"
     ],
     "createdAt": 0,
-    "color": "KHAKI"
+    "color": "KHAKI",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-pant-3",
@@ -199,7 +209,8 @@
       "/demo/pant.svg"
     ],
     "createdAt": 0,
-    "color": "CINDER"
+    "color": "CINDER",
+    "eta": "14–21 день"
   },
   {
     "id": "demo-runner-3",
@@ -219,6 +230,7 @@
       "/demo/runner.svg"
     ],
     "createdAt": 0,
-    "color": "WHITE"
+    "color": "WHITE",
+    "eta": "14–21 день"
   }
 ]

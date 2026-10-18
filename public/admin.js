@@ -89,7 +89,7 @@ form.onsubmit = async e => {
       }
     }
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
     await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -124,6 +124,7 @@ $('#list').onclick = async e => {
     form.name.value = p.name;
     form.brand.value = p.brand;
     form.color.value = p.color || '';
+    form.eta.value = p.eta || '';
     form.soldOut.checked = !!p.soldOut;
     form.price.value = p.price;
     form.sizes.value = p.sizes.join(', ');
