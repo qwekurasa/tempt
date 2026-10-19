@@ -30,7 +30,7 @@ async function showPanel() {
     <div class="row">
       <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
       <div><div>${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
-      <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-del="${esc(p.id)}">Удалить</button></div>
+      <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-dup="${esc(p.id)}">Дублировать</button><button data-del="${esc(p.id)}">Удалить</button></div>
     </div>`).join('');
 }
 
@@ -128,7 +128,22 @@ $('#rates').onsubmit = async e => {
 
 
 $('#list').onclick = async e => {
-  const edit = e.target.dataset.edit, del = e.target.dataset.del;
+  const edit = e.target.dataset.edit, del = e.target.dataset.del, dup = e.target.dataset.dup;
+  if (dup) {
+    const p = products.find(x => x.id === dup);
+    e.target.disabled = true;
+    try {
+      await api('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...p, sizes: p.sizes.join(', ') }),
+      });
+      showPanel();
+    } catch (err) {
+      alert(err.message);
+      e.target.disabled = false;
+    }
+  }
   if (edit) {
     const p = products.find(x => x.id === edit);
     form.id.value = p.id;

@@ -26,7 +26,7 @@ body:not([data-view=product]) #pback{display:none}
 /* каталог */
 .bar{display:flex;align-items:center;gap:24px;padding:16px 32px 0 228px}
 .bar .sort{margin-left:auto;display:flex;align-items:center;gap:8px}
-.sort select{border:0;background:none;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer}
+.sort select{border:0;background:none;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer;outline:none}
 #filters-toggle{display:none}
 .layout{display:grid;grid-template-columns:172px 1fr;gap:24px;padding:0 32px 0 32px;align-items:start}
 .filters{position:sticky;top:calc(var(--h) + 24px);padding-top:32px;font-size:11px}
@@ -59,9 +59,20 @@ body:not([data-view=product]) #pback{display:none}
 
 /* товар */
 .pdp{display:flex;flex-direction:column;align-items:center;padding-bottom:72px}
+.gal{position:relative;width:100%}
 .gallery{width:100%;height:min(60vh,640px);display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .gallery::-webkit-scrollbar{display:none}
-.gallery img{flex:0 0 100%;width:100%;height:100%;object-fit:contain;padding:3% 16px;scroll-snap-align:center}
+.gallery img{flex:0 0 100%;width:100%;height:100%;object-fit:contain;padding:3% 56px;scroll-snap-align:center}
+.gallery img{cursor:zoom-in}
+.arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:64px;font-size:28px;line-height:1;color:var(--text);opacity:.6;transition:opacity .15s}
+.arrow:hover{opacity:1}
+.arrow:disabled{opacity:.15;cursor:default}
+.arrow.prev{left:8px}
+.arrow.next{right:8px}
+.lightbox{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.lightbox img{max-width:calc(100% - 120px);max-height:calc(100% - 96px);object-fit:contain;cursor:zoom-out}
+.lb-close{position:absolute;top:10px;right:14px;width:40px;height:40px;font-size:24px}
+.lb-count{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:var(--text-muted)}
 .dots{display:flex;gap:6px;height:20px;align-items:center}
 .dots button{width:5px;height:5px;border-radius:50%;background:#cfcfcf}
 .dots button.on{background:var(--text)}
@@ -141,6 +152,11 @@ body.co header{display:none}
   .grid{grid-template-columns:repeat(3,1fr);gap:28px 12px;padding:16px 0 64px}
   .cap{font-size:10px;margin-top:8px}
   .gallery{height:56vh}
+  .arrow{width:36px}
+  .gallery img{padding:3% 36px}
+  .arrow.prev{left:0}
+  .arrow.next{right:0}
+  .lightbox img{max-width:100%;max-height:calc(100% - 96px)}
   .co-grid{grid-template-columns:1fr;gap:40px}
   .co-sum{position:static;order:-1}
   .co-form{justify-self:stretch}

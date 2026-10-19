@@ -13,8 +13,9 @@ const rub = n => n.toLocaleString('ru-RU') + ' ₽';
 const isBlob = u => /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\//.test(u);
 const isImage = u => typeof u === 'string' && (isBlob(u) || /^\/demo\/[\w-]+\.svg$/.test(u));
 const removeImages = urls => {
+  if (process.env.LOG_DELETES) console.log('DEL', JSON.stringify(urls));
   const b = urls.filter(isBlob);
-  return b.length ? del(b) : null;
+  return b.length && blobHost() ? del(b) : null;
 };
 
 // Каталог читается по прямому URL через CDN (кэш до 60 с); fresh — в обход кэша, для админки и изменений.
@@ -24,7 +25,7 @@ const blobHost = () => {
 };
 async function load(fresh) {
   const host = blobHost();
-  if (!host) return structuredClone(seed);
+  if (!host) return structuredClone(memProducts);
   const r = await fetch(`${host}/products.json${fresh ? '?t=' + Date.now() : ''}`, { cache: 'no-store' });
   if (r.status === 404) return structuredClone(seed);
   if (!r.ok) throw new Error('products: ' + r.status);
@@ -45,8 +46,9 @@ async function saveSettings(v) {
   return v;
 }
 
+let memProducts = seed; // без Blob (локально, e2e) — в памяти
 const save = items =>
-  put('products.json', JSON.stringify(items), {
+  !blobHost() ? (memProducts = structuredClone(items)) : put('products.json', JSON.stringify(items), {
     access: 'public',
     addRandomSuffix: false,
     allowOverwrite: true,
@@ -176,7 +178,7 @@ app.put('/api/products/:id', auth, async (req, res) => {
   const removed = product.images.filter(u => !p.images.includes(u));
   Object.assign(product, p);
   await save(items);
-  await removeImages(removed);
+  await removeImages(removed.filter(u => !items.some(x => x.images.includes(u))));
   res.json(product);
 });
 
@@ -186,7 +188,7 @@ app.delete('/api/products/:id', auth, async (req, res) => {
   if (i < 0) return res.status(404).json({ error: 'Товар не найден' });
   const [product] = items.splice(i, 1);
   await save(items);
-  await removeImages(product.images);
+  await removeImages(product.images.filter(u => !items.some(x => x.images.includes(u))));
   res.json({ ok: true });
 });
 

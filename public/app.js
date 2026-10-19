@@ -113,7 +113,9 @@ function showProduct(id) {
   document.title = `${current.name} — TEMPT`;
   $('#gallery').innerHTML = current.images.map(img).join('');
   $('#gallery').scrollLeft = 0;
+  $('#lightbox').hidden = true;
   $('#dots').innerHTML = current.images.length > 1 ? current.images.map((_, i) => `<button data-i="${i}" aria-label="Фото ${i + 1}" class="${i ? '' : 'on'}"></button>`).join('') : '';
+  updateArrows(0);
   $('#p-name').textContent = current.name;
   $('#p-price').textContent = $('#p-price2').textContent = rub(current.price);
   $('#open').hidden = !!current.soldOut;
@@ -138,6 +140,40 @@ function showProduct(id) {
   $('#info-btn').setAttribute('aria-expanded', 'false');
   setBuy(false);
   scrollTo(0, 0);
+}
+
+// --- галерея и просмотр фото ---
+const galIndex = () => Math.round($('#gallery').scrollLeft / $('#gallery').clientWidth);
+const galGo = (i, behavior = 'smooth') => $('#gallery').scrollTo({ left: i * $('#gallery').clientWidth, behavior });
+
+function updateArrows(i) {
+  const n = current.images.length;
+  $('#g-prev').hidden = $('#g-next').hidden = n < 2;
+  $('#g-prev').disabled = i <= 0;
+  $('#g-next').disabled = i >= n - 1;
+  $('#dots').querySelectorAll('button').forEach((d, j) => d.classList.toggle('on', i === j));
+}
+
+let lbIndex = 0;
+function showLb(i) {
+  const n = current.images.length;
+  lbIndex = Math.max(0, Math.min(n - 1, i));
+  $('#lb-img').src = current.images[lbIndex];
+  $('#lb-count').textContent = n > 1 ? `${lbIndex + 1} / ${n}` : '';
+  $('#lb-prev').hidden = $('#lb-next').hidden = n < 2;
+  $('#lb-prev').disabled = lbIndex === 0;
+  $('#lb-next').disabled = lbIndex === n - 1;
+}
+function openLb(i) {
+  showLb(i);
+  $('#lightbox').hidden = false;
+  document.body.style.overflow = 'hidden';
+  $('#lb-close').focus();
+}
+function closeLb() {
+  $('#lightbox').hidden = true;
+  document.body.style.overflow = '';
+  galGo(lbIndex, 'instant');
 }
 
 // --- корзина ---
@@ -172,6 +208,7 @@ function showCart() {
 }
 
 function route() {
+  if (!$('#lightbox').hidden) { $('#lightbox').hidden = true; document.body.style.overflow = ''; }
   const m = /^#\/p\/(.+)$/.exec(location.hash);
   if (m) return showProduct(decodeURIComponent(m[1]));
   if (location.hash === '#/cart') return showCart();
@@ -211,15 +248,39 @@ $('#sort').onchange = e => {
 $('#grid').onclick = e => {
   if (e.target.closest('.item')) homeScroll = scrollY;
 };
-$('#gallery').onscroll = () => {
-  const g = $('#gallery');
-  const i = Math.round(g.scrollLeft / g.clientWidth);
-  $('#dots').querySelectorAll('button').forEach((d, j) => d.classList.toggle('on', i === j));
-};
+$('#gallery').onscroll = () => updateArrows(galIndex());
 $('#dots').onclick = e => {
   const d = e.target.closest('button');
-  if (d) $('#gallery').scrollTo({ left: d.dataset.i * $('#gallery').clientWidth, behavior: 'smooth' });
+  if (d) galGo(Number(d.dataset.i));
 };
+$('#g-prev').onclick = () => galGo(galIndex() - 1);
+$('#g-next').onclick = () => galGo(galIndex() + 1);
+$('#gallery').onclick = e => {
+  const im = e.target.closest('img');
+  if (im) openLb([...$('#gallery').children].indexOf(im));
+};
+$('#lb-prev').onclick = () => showLb(lbIndex - 1);
+$('#lb-next').onclick = () => showLb(lbIndex + 1);
+$('#lb-close').onclick = closeLb;
+$('#lightbox').onclick = e => {
+  if (e.target.id === 'lightbox' || e.target.id === 'lb-img') closeLb();
+};
+let touchX = null;
+$('#lightbox').addEventListener('touchstart', e => (touchX = e.touches[0].clientX), { passive: true });
+$('#lightbox').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchX;
+  if (Math.abs(dx) > 40) showLb(lbIndex + (dx < 0 ? 1 : -1));
+});
+document.addEventListener('keydown', e => {
+  if (!$('#lightbox').hidden) {
+    if (e.key === 'Escape') closeLb();
+    if (e.key === 'ArrowLeft') showLb(lbIndex - 1);
+    if (e.key === 'ArrowRight') showLb(lbIndex + 1);
+  } else if (document.body.dataset.view === 'product' && !e.target.closest('input, textarea, select')) {
+    if (e.key === 'ArrowLeft') galGo(galIndex() - 1);
+    if (e.key === 'ArrowRight') galGo(galIndex() + 1);
+  }
+});
 $('#open').onclick = () => (current.sizes.length ? setBuy(true) : addToCart(''));
 $('#close').onclick = () => setBuy(false);
 $('#sizes').onclick = e => {
