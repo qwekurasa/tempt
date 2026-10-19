@@ -267,5 +267,5 @@ html:not([data-theme=dark]) .img img,html:not([data-theme=dark]) .gallery img,ht
 .p-back{margin-bottom:16px;font-size:11px;color:var(--text-muted)}
 .p-back:hover{color:var(--text)}
 @media (min-width:801px){#pback{display:none!important}}
-@media (max-width:800px){.gal{padding:0 12px}.gallery{gap:4px;overflow-x:auto;justify-content:flex-start}.gallery img{flex:0 0 44%}}
+@media (max-width:800px){.gal{padding:0 12px}.gallery{gap:0;overflow-x:auto;justify-content:flex-start;scroll-snap-type:x mandatory}.gallery img{flex:0 0 100%;max-width:none;scroll-snap-align:center}#dots{display:flex!important;justify-content:center;margin-top:8px}}
 @media (max-width:800px){.tabs .tl,.tabs .tr{display:contents}}
