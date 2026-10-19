@@ -31,7 +31,7 @@ test('F01-H5 оформление заказа', async ({ page }) => {
   await page.getByRole('button', { name: '+' }).click();
   await expect(page.locator('#subtotal')).toHaveText('11 800 ₽');
   await fill(page);
-  await page.getByRole('checkbox', { name: /Согласен/ }).check();
+  await page.getByRole('checkbox', { name: /Даю согласие/ }).check();
   await page.getByRole('button', { name: 'Оформить заказ' }).click();
   await expect(page.getByRole('heading', { name: /Заказ #[0-9A-F]{12} оформлен/ })).toBeVisible();
   await expect(page.locator('#cart-count2')).toHaveText('0');
@@ -52,7 +52,7 @@ test('F01-E6 двойной клик отправляет один заказ', 
   await addTee(page);
   await page.goto('/#/cart');
   await fill(page);
-  await page.getByRole('checkbox', { name: /Согласен/ }).check();
+  await page.getByRole('checkbox', { name: /Даю согласие/ }).check();
   let count = 0;
   page.on('request', r => r.url().endsWith('/api/order') && count++);
   await page.getByRole('button', { name: 'Оформить заказ' }).dblclick();

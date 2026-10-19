@@ -10,6 +10,7 @@
 <style>
   .wrap{max-width:1100px;margin:0 auto;padding:24px}
   .cols{display:grid;grid-template-columns:380px 1fr;gap:40px;align-items:start}
+  #list .row{grid-template-columns:18px 56px 1fr auto}
   .row{display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
   .row .ph{width:56px}
   .actions{display:flex;gap:16px}
@@ -25,6 +26,9 @@
   .row.flash{animation:flash 2.4s ease-out}
   @keyframes flash{from{background:#efeee9}to{background:transparent}}
   .cols>*{min-width:0}
+  .sel{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+  .bulk{position:sticky;top:0;z-index:2;display:flex;gap:16px;align-items:center;padding:10px 12px;margin-bottom:8px;background:var(--accent);color:var(--on-accent);border-radius:var(--radius)}
+  #bulk-del{font-weight:700;text-decoration:underline}
   .pick{max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:4px 8px}
   .pick-row{flex-direction:row!important;align-items:center;gap:10px!important;padding:4px 0;cursor:pointer}
   .pick-row input{width:16px!important;height:16px;flex:none}
@@ -37,6 +41,7 @@
     .admin-head .tabs{display:flex;position:static;flex-direction:row;gap:16px;padding:0;border:0;background:none}
     .g2{grid-template-columns:1fr}
     .row{grid-template-columns:56px 1fr}
+    #list .row{grid-template-columns:18px 56px 1fr}
     .row .actions{grid-column:1/-1;flex-wrap:wrap;gap:4px 20px}
     .actions button,.admin-head button{min-height:40px}
   }
@@ -122,7 +127,8 @@
     </form>
     <div>
       <div class="form" style="margin-bottom:16px"><input id="search" type="search" placeholder="Поиск: артикул, название, бренд" aria-label="Поиск товара"></div>
-      <div class="mute" style="margin-bottom:8px">Товары (<span id="count">0</span>)</div>
+      <div class="mute" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Товары (<span id="count">0</span>)<button type="button" id="sel-all">Выбрать все</button></div>
+      <div class="bulk" id="bulk" hidden>Выбрано: <span id="bulk-count">0</span><button type="button" id="bulk-del">Удалить выбранные</button><button type="button" id="bulk-cancel">Снять выделение</button></div>
       <div id="list"></div>
     </div>
   </div>

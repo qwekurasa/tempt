@@ -41,3 +41,14 @@ test.describe('API', () => {
     expect((await request.get('/api/me')).status()).toBe(200);
   });
 });
+
+test('API параллельные добавления не теряются, массовое удаление', async ({ request }) => {
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  const made = await Promise.all([...Array(6)].map((_, i) => request.post('/api/products', { data: { name: 'PAR ' + i, brand: 'PARBRAND', price: 100 } }).then(r => r.json())));
+  const all = await (await request.get('/api/products?fresh')).json();
+  expect(made.every(m => all.some(p => p.id === m.id))).toBe(true);
+  const r = await request.post('/api/products/delete', { data: { ids: made.map(m => m.id) } });
+  expect((await r.json()).removed).toBe(6);
+  const after = await (await request.get('/api/products?fresh')).json();
+  expect(after.some(p => p.brand === 'PARBRAND')).toBe(false);
+});

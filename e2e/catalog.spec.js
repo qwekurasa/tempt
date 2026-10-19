@@ -9,12 +9,11 @@ test('F01-H1 каталог показывает все товары', async ({ 
   await a11y(page);
 });
 
-test('NAV вкладки О проекте / Доставка / Подборка', async ({ page }, info) => {
+test('NAV вкладки О проекте / Доставка / Форум', async ({ page }, info) => {
   const mobile = info.project.name === 'mobile';
   const open = async () => { if (mobile) await page.getByRole('button', { name: 'Меню' }).click(); };
   await page.goto('/');
   await open();
-  await expect(page.getByRole('link', { name: 'Подборка' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('img', { name: 'TEMPT' }).first()).toBeVisible();
   await page.getByRole('link', { name: 'Доставка' }).click();
   await expect(page.getByRole('heading', { name: 'Доставка в Россию и Беларусь' })).toBeVisible();
@@ -24,8 +23,8 @@ test('NAV вкладки О проекте / Доставка / Подборка
   await open();
   await page.getByRole('link', { name: 'О проекте' }).click();
   await expect(page.getByRole('heading', { name: 'О проекте' })).toBeVisible();
-  await open();
-  await page.getByRole('link', { name: 'Подборка' }).click();
+  await page.getByRole('link', { name: 'Форум' }).first().isVisible() || await open();
+  await page.locator('#top .logo').click();
   await expect(page.locator('#grid .item')).toHaveCount(12);
 });
 

@@ -4,7 +4,15 @@ const rub = n => n.toLocaleString('ru-RU') + ' ₽';
 const form = $('#pf');
 let products = [];
 
-async function api(url, opts) {
+// изменения каталога/постов/настроек отправляются строго по очереди, чтобы не перезаписать друг друга
+let queue = Promise.resolve();
+function api(url, opts = {}) {
+  if (!/^\/api\/(products|posts|settings)/.test(url) || !opts.method) return request(url, opts);
+  const run = queue.then(() => request(url, opts));
+  queue = run.catch(() => {});
+  return run;
+}
+async function request(url, opts) {
   const r = await fetch(url, opts);
   const j = await r.json().catch(() => ({}));
   if (r.status === 401 && url !== '/api/login') showLogin();
@@ -33,16 +41,53 @@ function renderList() {
   renderRows();
 }
 
+const selected = new Set();
+function updateBulk() {
+  for (const id of selected) if (!products.some(p => p.id === id)) selected.delete(id);
+  $('#bulk').hidden = !selected.size;
+  $('#bulk-count').textContent = selected.size;
+}
 function renderRows() {
   const q = $('#search').value.trim().toUpperCase();
   const list = q ? products.filter(p => [p.sku, p.name, p.brand].some(v => (v || '').toUpperCase().includes(q))) : products;
   $('#list').innerHTML = list.length ? list.map(p => `
     <div class="row${p.id === flashId ? ' flash' : ''}" data-row="${esc(p.id)}">
+      <input type="checkbox" class="sel" data-sel="${esc(p.id)}"${selected.has(p.id) ? ' checked' : ''} aria-label="Выбрать">
       <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
       <div><div>${p.sku ? `<span class="mute">${esc(p.sku)}</span> · ` : ''}${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
       <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-dup="${esc(p.id)}">Дублировать</button><button data-del="${esc(p.id)}">Удалить</button></div>
     </div>`).join('') : '<p class="mute" style="padding:16px 0">Ничего не найдено</p>';
+  updateBulk();
 }
+$('#list').onchange = e => {
+  const id = e.target.dataset.sel;
+  if (!id) return;
+  e.target.checked ? selected.add(id) : selected.delete(id);
+  updateBulk();
+};
+$('#sel-all').onclick = () => {
+  const ids = [...$('#list').querySelectorAll('[data-sel]')].map(x => x.dataset.sel);
+  const all = ids.every(id => selected.has(id));
+  ids.forEach(id => (all ? selected.delete(id) : selected.add(id)));
+  renderRows();
+};
+$('#bulk-cancel').onclick = () => { selected.clear(); renderRows(); };
+$('#bulk-del').onclick = async () => {
+  const ids = [...selected];
+  if (!confirm(`Удалить выбранные товары (${ids.length})?`)) return;
+  const before = products.slice();
+  products = products.filter(p => !selected.has(p.id));
+  if (selected.has(form.id.value)) resetForm();
+  selected.clear();
+  renderList();
+  try {
+    await api('/api/products/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+  } catch (err) {
+    products = before;
+    renderList();
+    alert('Не удалось удалить: ' + err.message);
+  }
+};
 
 function resetForm() {
   form.reset();

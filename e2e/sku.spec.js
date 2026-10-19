@@ -19,13 +19,13 @@ test('SKU назначается, уникален, ищется, скрыт о�
   await page.goto('/admin');
   await page.getByLabel('Пароль').fill('e2e-pass');
   await page.getByRole('button', { name: 'Войти' }).click();
-  await page.getByLabel('Поиск товара').fill('ab777');
+  await page.getByLabel('Поиск товара', { exact: true }).fill('ab777');
   await expect(page.locator('.row')).toHaveCount(1);
   await expect(page.locator('.row')).toContainText('SKU MANUAL');
 
   // копия получает новый артикул
   await page.locator('.row').getByRole('button', { name: 'Дублировать' }).click();
-  await page.getByLabel('Поиск товара').fill('SKU MANUAL');
+  await page.getByLabel('Поиск товара', { exact: true }).fill('SKU MANUAL');
   await expect(page.locator('.row')).toHaveCount(2);
   const all = await (await request.get('/api/products?fresh')).json();
   const skus = all.filter(p => p.name === 'SKU MANUAL').map(p => p.sku);

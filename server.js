@@ -167,7 +167,15 @@ app.get('/api/settings', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json(await loadSettings(isAdmin(req) && 'fresh' in req.query));
 });
-app.put('/api/settings', auth, async (req, res) => {
+// записи в products/posts/settings — по одной, иначе параллельные запросы теряют изменения друг друга
+let chain = Promise.resolve();
+const serial = fn => (req, res) => {
+  const run = chain.then(() => fn(req, res));
+  chain = run.catch(() => {});
+  return run;
+};
+
+app.put('/api/settings', auth, serial(async (req, res) => {
   const v = {};
   for (const k of Object.keys(Shipping.DEFAULTS)) {
     const n = Math.round(Number(req.body[k]) * 10000) / 10000;
@@ -175,7 +183,7 @@ app.put('/api/settings', auth, async (req, res) => {
     v[k] = n;
   }
   res.json(await saveSettings(v));
-});
+}));
 
 app.post('/api/upload', auth, express.raw({ type: Object.keys(EXT), limit: '4mb' }), async (req, res) => {
   const type = req.headers['content-type'];
@@ -200,7 +208,7 @@ app.post('/api/upload-token', auth, express.json(), async (req, res) => {
   }
 });
 
-app.post('/api/products', auth, async (req, res) => {
+app.post('/api/products', auth, serial(async (req, res) => {
   const p = productFields(req.body);
   if (!p) return res.status(400).json({ error: 'Заполните название, бренд и цену' });
   const items = await load(true);
@@ -210,9 +218,9 @@ app.post('/api/products', auth, async (req, res) => {
   items.unshift(product);
   await save(items);
   res.json(product);
-});
+}));
 
-app.put('/api/products/:id', auth, async (req, res) => {
+app.put('/api/products/:id', auth, serial(async (req, res) => {
   const items = await load(true);
   const product = items.find(x => x.id === req.params.id);
   if (!product) return res.status(404).json({ error: 'Товар не найден' });
@@ -225,9 +233,9 @@ app.put('/api/products/:id', auth, async (req, res) => {
   await save(items);
   removeImages(removed.filter(u => !items.some(x => x.images.includes(u))));
   res.json(product);
-});
+}));
 
-app.delete('/api/products/:id', auth, async (req, res) => {
+app.delete('/api/products/:id', auth, serial(async (req, res) => {
   const items = await load(true);
   const i = items.findIndex(x => x.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: 'Товар не найден' });
@@ -235,7 +243,18 @@ app.delete('/api/products/:id', auth, async (req, res) => {
   await save(items);
   removeImages(product.images.filter(u => !items.some(x => x.images.includes(u))));
   res.json({ ok: true });
-});
+}));
+
+app.post('/api/products/delete', auth, serial(async (req, res) => {
+  const ids = new Set(Array.isArray(req.body.ids) ? req.body.ids : []);
+  const items = await load(true);
+  const removed = items.filter(x => ids.has(x.id));
+  if (!removed.length) return res.status(400).json({ error: 'Не выбрано ни одного товара' });
+  const left = items.filter(x => !ids.has(x.id));
+  await save(left);
+  removeImages(removed.flatMap(p => p.images).filter(u => !left.some(x => x.images.includes(u))));
+  res.json({ ok: true, removed: removed.length });
+}));
 
 // --- форум: посты с фото и текстом ---
 let memPosts = []; // без Blob (локально, e2e) — в памяти
@@ -266,7 +285,7 @@ app.get('/api/posts', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json(await loadPosts(isAdmin(req) && 'fresh' in req.query));
 });
-app.post('/api/posts', auth, async (req, res) => {
+app.post('/api/posts', auth, serial(async (req, res) => {
   const p = postFields(req.body);
   if (!p) return res.status(400).json({ error: 'Добавьте текст, заголовок или фото' });
   const posts = await loadPosts(true);
@@ -274,8 +293,8 @@ app.post('/api/posts', auth, async (req, res) => {
   posts.unshift(post);
   await savePosts(posts);
   res.json(post);
-});
-app.put('/api/posts/:id', auth, async (req, res) => {
+}));
+app.put('/api/posts/:id', auth, serial(async (req, res) => {
   const posts = await loadPosts(true);
   const post = posts.find(x => x.id === req.params.id);
   if (!post) return res.status(404).json({ error: 'Пост не найден' });
@@ -286,8 +305,8 @@ app.put('/api/posts/:id', auth, async (req, res) => {
   await savePosts(posts);
   removeImages(removed);
   res.json(post);
-});
-app.delete('/api/posts/:id', auth, async (req, res) => {
+}));
+app.delete('/api/posts/:id', auth, serial(async (req, res) => {
   const posts = await loadPosts(true);
   const i = posts.findIndex(x => x.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: 'Пост не найден' });
@@ -295,7 +314,7 @@ app.delete('/api/posts/:id', auth, async (req, res) => {
   await savePosts(posts);
   removeImages(post.images);
   res.json({ ok: true });
-});
+}));
 
 const SERVICES = { ozon: 'Ozon', yandex: 'Яндекс', cdek: 'СДЭК' };
 

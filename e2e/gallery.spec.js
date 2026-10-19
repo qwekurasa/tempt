@@ -15,17 +15,12 @@ test.afterAll(async ({ request }) => {
   await request.delete('/api/products/' + id);
 });
 
-test('GAL стрелки листают фото', async ({ page }) => {
+test('GAL все фото в одну строку', async ({ page }) => {
   await page.goto('/#/p/' + id);
-  const prev = page.getByRole('button', { name: 'Предыдущее фото' }).first();
-  const next = page.getByRole('button', { name: 'Следующее фото' }).first();
-  await expect(prev).toBeDisabled();
-  await next.click();
-  await expect(page.getByRole('button', { name: 'Фото 2' })).toHaveClass(/on/);
-  await next.click();
-  await expect(next).toBeDisabled();
-  await prev.click();
-  await expect(page.getByRole('button', { name: 'Фото 2' })).toHaveClass(/on/);
+  const imgs = page.locator('#gallery img');
+  await expect(imgs).toHaveCount(3);
+  const tops = await imgs.evaluateAll(a => a.map(i => Math.round(i.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1);
 });
 
 test('GAL фото открывается на весь экран, листается и закрывается', async ({ page }) => {
@@ -41,7 +36,6 @@ test('GAL фото открывается на весь экран, листае
   await a11y(page);
   await page.keyboard.press('Escape');
   await expect(lb).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Фото 3' })).toHaveClass(/on/);
 });
 
 test('GAL одно фото — стрелок нет', async ({ page }) => {

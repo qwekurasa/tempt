@@ -24,7 +24,7 @@ test('SHIP товар: примерная стоимость доставки', 
   await expect(page.locator('#p-status')).toHaveText('Примерная стоимость доставки до РФ: ~678 ₽');
   await page.getByRole('button', { name: 'Информация' }).click();
   await expect(page.locator('#p-info')).not.toContainText('Ozon');
-  await expect(page.locator('#p-info')).toContainText('за перекидку на ТК');
+  await expect(page.locator('#p-info')).not.toContainText('за перекидку на ТК');
 });
 
 test('SHIP корзина: по Китаю за каждую вещь, тариф от 10 кг, ТК раз за заказ', async ({ page }) => {
