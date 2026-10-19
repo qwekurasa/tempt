@@ -2,7 +2,7 @@
 html{scrollbar-width:none}
 html::-webkit-scrollbar{display:none}
 /* токены: replica/design/tokens.json */
-:root{--bg:#fff;--surface:#f4f4f4;--surface-soft:#efefef;--border:#e0e0e0;--border-input:#8a8a8a;--text:#2e2e2e;--text-muted:#6b6b6b;--accent:#2e2e2e;--on-accent:#fff;--danger:#c62f2f;--radius:4px;--h:48px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+:root{--bg:#fff;--surface:#f4f4f4;--surface-soft:#efefef;--border:#e0e0e0;--border-input:#8a8a8a;--text:#2e2e2e;--text-muted:#6b6b6b;--accent:#2e2e2e;--on-accent:#fff;--danger:#c62f2f;--radius:4px;--h:68px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
 body{background:var(--bg);color:var(--text);font:12px/1.5 var(--mono);letter-spacing:.04em;text-transform:uppercase;-webkit-font-smoothing:antialiased}
 a,button{color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;background:none;border:0;cursor:pointer;text-decoration:none}
 [hidden]{display:none!important}
@@ -175,7 +175,7 @@ body.co header{display:none}
 
 @media (max-width:800px){
   /* шапка: меню слева, логотип по центру, корзина справа; разделы — выпадающим меню */
-  header{--h:52px;padding:0 14px;gap:4px}
+  header{--h:60px;padding:0 14px;gap:4px}
   #menu-btn{display:inline-flex}
   .top-l{gap:0}
   header .logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
