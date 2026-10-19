@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const { put, del } = require('@vercel/blob');
+const { handleUpload } = require('@vercel/blob/client');
 const { waitUntil } = require('@vercel/functions');
 const seed = require('./data/products.json');
 const Shipping = require('./public/shipping.js');
@@ -185,6 +186,20 @@ app.post('/api/upload', auth, express.raw({ type: Object.keys(EXT), limit: '4mb'
   res.json({ url: blob.url });
 });
 
+// Прямая загрузка фото из браузера в Blob — без сжатия и без лимита 4.5 МБ
+app.post('/api/upload-token', auth, express.json(), async (req, res) => {
+  try {
+    res.json(await handleUpload({
+      body: req.body,
+      request: req,
+      onBeforeGenerateToken: async () => ({ allowedContentTypes: Object.keys(EXT), maximumSizeInBytes: 50 * 1024 * 1024, addRandomSuffix: true }),
+      onUploadCompleted: async () => {},
+    }));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 app.post('/api/products', auth, async (req, res) => {
   const p = productFields(req.body);
   if (!p) return res.status(400).json({ error: 'Заполните название, бренд и цену' });
@@ -242,8 +257,9 @@ function postFields(b) {
     text: S(b.text).slice(0, 8000),
     tag: S(b.tag).slice(0, 40),
     images: Array.isArray(b.images) ? b.images.filter(isImage).slice(0, 10) : [],
+    products: Array.isArray(b.products) ? b.products.filter(x => typeof x === 'string' && x.length < 80).slice(0, 20) : [],
   };
-  return p.title || p.text || p.images.length ? p : null;
+  return p.title || p.text || p.images.length || p.products.length ? p : null;
 }
 
 app.get('/api/posts', async (req, res) => {

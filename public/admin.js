@@ -70,20 +70,12 @@ $('#logout').onclick = async () => {
   showLogin();
 };
 
-const toBlob = (canvas, type) => new Promise(r => canvas.toBlob(r, type, 0.92));
-
-// Фото до 4 МБ грузятся как есть; тяжелее — уменьшаются до 2560px с высоким качеством (лимит запроса Vercel 4.5 МБ)
-const ORIGINAL_OK = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
-async function compress(file) {
-  if (ORIGINAL_OK.includes(file.type) && file.size <= 4 * 1024 * 1024) return file;
-  const bmp = await createImageBitmap(file);
-  const k = Math.min(1, 2560 / Math.max(bmp.width, bmp.height));
-  const c = document.createElement('canvas');
-  c.width = Math.round(bmp.width * k);
-  c.height = Math.round(bmp.height * k);
-  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  const webp = await toBlob(c, 'image/webp');
-  return webp && webp.type === 'image/webp' ? webp : toBlob(c, 'image/jpeg');
+// Фото грузятся как есть, без сжатия: до 4 МБ через сервер, больше — напрямую в Blob
+let blobClient;
+async function uploadImage(f) {
+  if (f.size <= 4 * 1024 * 1024) return (await api('/api/upload', { method: 'POST', headers: { 'Content-Type': f.type }, body: f })).url;
+  blobClient ||= await import('https://esm.sh/@vercel/blob@2.8.2/client');
+  return (await blobClient.upload('images/' + f.name.replace(/[^\w.-]/g, '_'), f, { access: 'public', handleUploadUrl: '/api/upload-token', contentType: f.type })).url;
 }
 
 form.onsubmit = async e => {
@@ -100,8 +92,7 @@ form.onsubmit = async e => {
       images = [];
       for (const [i, f] of files.entries()) {
         btn.textContent = `Загрузка фото ${i + 1}/${files.length}`;
-        const blob = await compress(f);
-        images.push((await api('/api/upload', { method: 'POST', headers: { 'Content-Type': blob.type }, body: blob })).url);
+        images.push(await uploadImage(f));
       }
     }
     btn.textContent = 'Сохранение…';
@@ -246,6 +237,13 @@ function resetPost() {
   $('#post-cancel').hidden = $('#post-img-note').hidden = true;
   $('#post-err').textContent = '';
 }
+function skusToIds(v) {
+  const want = v.split(/[\s,]+/).filter(Boolean).map(x => x.toUpperCase());
+  const miss = want.filter(s => !products.some(p => (p.sku || '').toUpperCase() === s));
+  if (miss.length) throw new Error('Нет товаров с артикулом: ' + miss.join(', '));
+  return want.map(s => products.find(p => (p.sku || '').toUpperCase() === s).id);
+}
+const idsToSkus = ids => (ids || []).map(id => products.find(p => p.id === id)?.sku).filter(Boolean).join(', ');
 pf.onsubmit = async e => {
   e.preventDefault();
   const id = pf.id.value, btn = $('#post-submit'), label = btn.textContent;
@@ -258,15 +256,14 @@ pf.onsubmit = async e => {
       images = [];
       for (const [i, f] of files.entries()) {
         btn.textContent = `Загрузка фото ${i + 1}/${files.length}`;
-        const blob = await compress(f);
-        images.push((await api('/api/upload', { method: 'POST', headers: { 'Content-Type': blob.type }, body: blob })).url);
+        images.push(await uploadImage(f));
       }
     }
     btn.textContent = 'Сохранение…';
     const saved = await api(id ? '/api/posts/' + encodeURIComponent(id) : '/api/posts', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: pf.title.value, tag: pf.tag.value, text: pf.text.value, images }),
+      body: JSON.stringify({ title: pf.title.value, tag: pf.tag.value, text: pf.text.value, images, products: skusToIds(pf.skus.value) }),
     });
     const i = posts.findIndex(p => p.id === saved.id);
     i >= 0 ? (posts[i] = saved) : posts.unshift(saved);
@@ -284,7 +281,7 @@ $('#post-list').onclick = async e => {
   const { pedit, pdel } = e.target.dataset;
   if (pedit) {
     const p = posts.find(x => x.id === pedit);
-    pf.id.value = p.id; pf.title.value = p.title; pf.tag.value = p.tag || ''; pf.text.value = p.text; pf.images.value = '';
+    pf.id.value = p.id; pf.title.value = p.title; pf.tag.value = p.tag || ''; pf.text.value = p.text; pf.skus.value = idsToSkus(p.products); pf.images.value = '';
     $('#post-title').textContent = 'Редактирование поста';
     $('#post-submit').textContent = 'Сохранить';
     $('#post-cancel').hidden = $('#post-img-note').hidden = false;

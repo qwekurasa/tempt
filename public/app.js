@@ -1,6 +1,7 @@
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rub = n => n.toLocaleString('ru-RU') + ' ₽';
+const rubUsd = n => rub(n) + (settings.usd > 0 ? ' · $' + Math.round(n / settings.usd).toLocaleString('ru-RU') : '');
 const img = src => (src ? `<img src="${esc(src)}" alt="" loading="lazy">` : '');
 const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch {} };
 
@@ -110,7 +111,7 @@ function showProduct(id) {
   $('#dots').innerHTML = current.images.length > 1 ? current.images.map((_, i) => `<button data-i="${i}" aria-label="Фото ${i + 1}" class="${i ? '' : 'on'}"></button>`).join('') : '';
   updateArrows(0);
   $('#p-name').textContent = current.name;
-  $('#p-price').textContent = $('#p-price2').textContent = rub(current.price);
+  $('#p-price').textContent = $('#p-price2').textContent = rubUsd(current.price);
   $('#open').hidden = !!current.soldOut;
   const q = Shipping.quote([qitem(current)], settings);
   const ship = q.complete ? q.china + q.intl : null;
@@ -142,6 +143,10 @@ let posts = null;
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 const fmtDate = t => { const d = new Date(t); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
 const linkify = t => esc(t).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+const postProducts = ids => {
+  const list = (ids || []).map(id => products.find(p => p.id === id)).filter(Boolean);
+  return list.length ? `<div class="post-goods">${list.map(p => `<a href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div>${esc(p.name)}</div><div class="mute">${p.soldOut ? 'Нет в наличии' : rubUsd(p.price)}</div></a>`).join('')}</div>` : '';
+};
 async function showForum() {
   view('forum');
   document.title = 'Форум — TEMPT';
@@ -156,6 +161,7 @@ async function showForum() {
     ${p.tag ? `<span class="post-tag">${esc(p.tag)}</span>` : ''}
     ${p.title ? `<h2>${esc(p.title)}</h2>` : ''}
     ${p.text ? `<div class="post-text">${linkify(p.text)}</div>` : ''}
+    ${postProducts(p.products)}
   </article>`).join('') : '<p class="empty">Постов пока нет</p>';
 }
 $('#posts').onclick = e => {

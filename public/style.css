@@ -74,6 +74,11 @@ body:not([data-view=product]) #pback{display:none}
 .post h2{font-size:14px;font-weight:700;margin:12px 0 0}
 .post-text{margin-top:10px;white-space:pre-line;text-transform:none;letter-spacing:.01em;line-height:1.65;font-size:13px}
 .post-text a{text-decoration:underline;word-break:break-all}
+.post-goods{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:16px;font-size:11px}
+.post-goods .img{aspect-ratio:1;background:#fff;border-radius:var(--radius);overflow:hidden;margin-bottom:6px}
+.post-goods img{width:100%;height:100%;object-fit:cover}
+body[data-view=forum],body[data-view=forum] header,body[data-view=forum] header .tabs{background:#000;color:#fff;--text:#fff;--text-muted:#9a9a9a;--border:#2a2a2a;--surface:#111}
+body[data-view=forum] .logo img{filter:invert(1)}
 
 /* товар */
 .pdp{display:flex;flex-direction:column;align-items:center;padding-bottom:72px}
@@ -231,3 +236,13 @@ body.co header{display:none}
   .co-form input:not([type=radio]):not([type=checkbox]),.co-form textarea,.form input,.form textarea,.form select{font-size:16px}
 }
 .checkout{padding-bottom:env(safe-area-inset-bottom)}
+@media (max-width:800px){
+  .filters.shown{text-align:center;padding:12px 0 8px}
+  .f-head{justify-content:center;gap:16px;margin-bottom:12px}
+  .f-group{margin-bottom:14px}
+  .f-group h4{margin-bottom:8px;color:var(--text-muted);font-weight:400}
+  .f-group label{display:inline-flex;margin:3px;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);gap:0}
+  .f-group input{position:absolute;opacity:0;width:1px;height:1px}
+  .f-group label:has(input:checked){background:#000;color:#fff;border-color:#000}
+  .f-group label:has(input:focus-visible){outline:2px solid #000;outline-offset:2px}
+}
