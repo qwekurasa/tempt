@@ -19,7 +19,9 @@
   .form select{background:var(--bg);color:var(--text);border:1px solid var(--accent);border-radius:0;padding:11px 12px;font:13px var(--mono)}
   .tabs button{color:var(--text-muted)}
   .tabs button.on{color:var(--text)}
-  @media (max-width:800px){.cols{grid-template-columns:1fr}}
+  .admin-head{display:flex;justify-content:space-between;align-items:center;height:48px;padding:0 16px}
+  .admin-head .tabs{gap:20px;padding:0}
+  @media (max-width:800px){.cols{grid-template-columns:1fr}.admin-head .logo{display:none}.wrap{padding:16px}}
 </style>
 </head>
 <body>
@@ -31,7 +33,7 @@
 </form>
 
 <div id="panel" hidden>
-  <header>
+  <header class="admin-head">
     <nav class="tabs" id="admin-tabs"><button data-tab="products" class="on">Товары</button><button data-tab="settings">Настройки</button></nav>
     <a class="logo" href="/">TEMPT</a>
     <button id="logout">Выйти</button>
@@ -60,6 +62,7 @@
     <form class="form" id="pf">
       <div id="pf-title">Новый товар</div>
       <input type="hidden" name="id">
+      <label>Артикул (только для вас)<input name="sku" maxlength="30" placeholder="Пусто — назначится автоматически"></label>
       <label>Название<input name="name" required maxlength="120"></label>
       <label>Бренд<input name="brand" required maxlength="60" list="brand-list"></label>
       <datalist id="brand-list"></datalist>
@@ -78,6 +81,7 @@
       <button class="btn ghost" type="button" id="pf-cancel" hidden>Отмена</button>
     </form>
     <div>
+      <div class="form" style="margin-bottom:16px"><input id="search" type="search" placeholder="Поиск: артикул, название, бренд" aria-label="Поиск товара"></div>
       <div class="mute" style="margin-bottom:8px">Товары (<span id="count">0</span>)</div>
       <div id="list"></div>
     </div>

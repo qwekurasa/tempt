@@ -25,12 +25,18 @@ async function showPanel() {
   for (const [k, v] of Object.entries(rates)) if ($('#rates')[k]) $('#rates')[k].value = v || '';
   $('#count').textContent = products.length;
   $('#brand-list').innerHTML = [...new Set(products.map(p => p.brand))].map(b => `<option value="${esc(b)}">`).join('');
-  $('#list').innerHTML = products.map(p => `
+  renderList();
+}
+
+function renderList() {
+  const q = $('#search').value.trim().toUpperCase();
+  const list = q ? products.filter(p => [p.sku, p.name, p.brand].some(v => (v || '').toUpperCase().includes(q))) : products;
+  $('#list').innerHTML = list.length ? list.map(p => `
     <div class="row">
       <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
-      <div><div>${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
+      <div><div>${p.sku ? `<span class="mute">${esc(p.sku)}</span> · ` : ''}${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
       <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-dup="${esc(p.id)}">Дублировать</button><button data-del="${esc(p.id)}">Удалить</button></div>
-    </div>`).join('');
+    </div>`).join('') : '<p class="mute" style="padding:16px 0">Ничего не найдено</p>';
 }
 
 function resetForm() {
@@ -59,11 +65,14 @@ $('#logout').onclick = async () => {
   showLogin();
 };
 
-const toBlob = (canvas, type) => new Promise(r => canvas.toBlob(r, type, 0.85));
+const toBlob = (canvas, type) => new Promise(r => canvas.toBlob(r, type, 0.92));
 
+// Фото до 4 МБ грузятся как есть; тяжелее — уменьшаются до 2560px с высоким качеством (лимит запроса Vercel 4.5 МБ)
+const ORIGINAL_OK = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 async function compress(file) {
+  if (ORIGINAL_OK.includes(file.type) && file.size <= 4 * 1024 * 1024) return file;
   const bmp = await createImageBitmap(file);
-  const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const k = Math.min(1, 2560 / Math.max(bmp.width, bmp.height));
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * k);
   c.height = Math.round(bmp.height * k);
@@ -91,7 +100,7 @@ form.onsubmit = async e => {
       }
     }
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, cat: form.cat.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
     await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -108,6 +117,7 @@ form.onsubmit = async e => {
 };
 
 $('#pf-cancel').onclick = resetForm;
+$('#search').oninput = renderList;
 
 $('#cat-select').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<option value="${k}"${k === 'm' ? ' selected' : ''}>${esc(l)}</option>`).join('');
 $('#cat-fees').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<label>${esc(l)}<input name="cat_${k}" type="number" min="0.01" step="0.01" required></label>`).join('');
@@ -146,7 +156,7 @@ $('#list').onclick = async e => {
       await api('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...p, sizes: p.sizes.join(', ') }),
+        body: JSON.stringify({ ...p, sku: '', sizes: p.sizes.join(', ') }),
       });
       showPanel();
     } catch (err) {
@@ -160,6 +170,7 @@ $('#list').onclick = async e => {
     form.name.value = p.name;
     form.brand.value = p.brand;
     form.color.value = p.color || '';
+    form.sku.value = p.sku || '';
     form.weight.value = p.weight || '';
     form.cat.value = Shipping.cat(p.cat);
     form.eta.value = p.eta || '';

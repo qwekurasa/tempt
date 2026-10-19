@@ -95,6 +95,20 @@ const limit = (max, ms) => (req, res, next) => {
 
 const EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/avif': '.avif' };
 
+// Артикул: внутренний, покупателям не отдаётся. Пустой — назначается T0001, T0002…
+const nextSku = items => 'T' + String(Math.max(0, ...items.map(x => +(/^T(\d+)$/.exec(x.sku || '') || [])[1] || 0)) + 1).padStart(4, '0');
+function withSku(items, product, wanted) {
+  if (wanted && items.some(x => x !== product && (x.sku || '').toUpperCase() === wanted)) return null;
+  product.sku = wanted || product.sku || nextSku(items.filter(x => x !== product));
+  return product;
+}
+function fillSkus(items) {
+  let changed = false;
+  for (const x of [...items].reverse()) if (!x.sku) { x.sku = nextSku(items); changed = true; }
+  return changed;
+}
+const S_SKU = b => S(b.sku).toUpperCase().replace(/\s+/g, '').slice(0, 30);
+
 function productFields(b) {
   const p = {
     name: S(b.name).slice(0, 120),
@@ -124,7 +138,13 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 
 app.get('/api/products', async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json(await load(isAdmin(req) && 'fresh' in req.query));
+  const admin = isAdmin(req);
+  const items = await load(admin && 'fresh' in req.query);
+  if (admin) {
+    if (fillSkus(items)) await save(items);
+    return res.json(items);
+  }
+  res.json(items.map(({ sku, ...x }) => x));
 });
 
 app.post('/api/login', limit(10, 15 * 60e3), (req, res) => {
@@ -168,6 +188,8 @@ app.post('/api/products', auth, async (req, res) => {
   if (!p) return res.status(400).json({ error: 'Заполните название, бренд и цену' });
   const items = await load(true);
   const product = { id: crypto.randomUUID(), ...p, createdAt: Date.now() };
+  fillSkus(items);
+  if (!withSku(items, product, S_SKU(req.body))) return res.status(400).json({ error: 'Такой артикул уже есть' });
   items.unshift(product);
   await save(items);
   res.json(product);
@@ -180,6 +202,8 @@ app.put('/api/products/:id', auth, async (req, res) => {
   const p = productFields(req.body);
   if (!p) return res.status(400).json({ error: 'Заполните название, бренд и цену' });
   const removed = product.images.filter(u => !p.images.includes(u));
+  fillSkus(items);
+  if (!withSku(items, product, S_SKU(req.body))) return res.status(400).json({ error: 'Такой артикул уже есть' });
   Object.assign(product, p);
   await save(items);
   await removeImages(removed.filter(u => !items.some(x => x.images.includes(u))));
@@ -225,7 +249,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     lines.push({ p, size, qty });
   }
   const q = Shipping.quote(qitems, await loadSettings());
-  lines.forEach((l, i) => (lines[i] = `${i + 1}. ${l.p.brand} — ${l.p.name}${l.size ? ' · ' + l.size : ''} × ${l.qty} = ${rub(l.p.price * l.qty)} + ${q.lines[i].chinaCny} ¥ по Китаю${l.p.eta ? `, срок ${l.p.eta}` : ''}`));
+  lines.forEach((l, i) => (lines[i] = `${i + 1}. ${l.p.sku ? `[${l.p.sku}] ` : ''}${l.p.brand} — ${l.p.name}${l.size ? ' · ' + l.size : ''} × ${l.qty} = ${rub(l.p.price * l.qty)} + ${q.lines[i].chinaCny} ¥ по Китаю${l.p.eta ? `, срок ${l.p.eta}` : ''}`));
   const or = (v, alt) => (v === null ? alt : rub(v));
   if (!lines.length) return res.status(400).json({ error: 'Корзина пуста' });
   if (!BOT_TOKEN || !CHAT_ID) return res.status(500).json({ error: 'Приём заказов не настроен' });
