@@ -10,7 +10,7 @@ a,button{color:inherit;font:inherit;letter-spacing:inherit;text-transform:inheri
 .mute{color:var(--text-muted)}
 
 /* шапка */
-header{position:sticky;top:0;z-index:5;height:var(--h);background:var(--bg);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
+header{position:sticky;top:0;z-index:5;height:var(--h);background:var(--bg);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 max(32px,env(safe-area-inset-right)) 0 max(32px,env(safe-area-inset-left))}
 header>:last-child{justify-self:end}
 header>.bag{grid-column:3}
 .logo{display:inline-flex;align-items:center}
@@ -167,7 +167,7 @@ body.co header{display:none}
 
 @media (max-width:800px){
   /* шапка: меню слева, логотип по центру, корзина справа; разделы — выпадающим меню */
-  header{--h:52px;padding:0 8px;gap:4px}
+  header{--h:52px;padding:0 14px;gap:4px}
   #menu-btn{display:inline-flex}
   .top-l{gap:0}
   header .logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
