@@ -160,7 +160,10 @@ function productFields(b) {
 const app = express();
 app.set('trust proxy', true);
 app.use(express.json({ limit: '100kb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+// html/css/js всегда перепроверяются (ETag), чтобы после деплоя не открывалась старая версия
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, file) => /\.(html|css|js)$/.test(file) && res.setHeader('Cache-Control', 'no-cache'),
+}));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
 app.get('/api/products', async (req, res) => {
