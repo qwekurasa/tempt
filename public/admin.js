@@ -126,14 +126,6 @@ $('#rates').onsubmit = async e => {
   }
 };
 
-$('#bot-setup').onclick = async () => {
-  try {
-    const j = await api('/api/tg-setup', { method: 'POST' });
-    alert(`Бот @${j.bot} подключён`);
-  } catch (err) {
-    alert(err.message);
-  }
-};
 
 $('#list').onclick = async e => {
   const edit = e.target.dataset.edit, del = e.target.dataset.del;

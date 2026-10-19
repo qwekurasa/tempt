@@ -4,7 +4,7 @@ const path = require('path');
 const { put, del } = require('@vercel/blob');
 const seed = require('./data/products.json');
 
-const { PORT = 3000, ADMIN_PASSWORD, BOT_TOKEN, CHAT_ID, PAYMENT_DETAILS } = process.env;
+const { PORT = 3000, ADMIN_PASSWORD, BOT_TOKEN, CHAT_ID } = process.env;
 
 const S = v => (typeof v === 'string' ? v.trim() : '');
 const rub = n => n.toLocaleString('ru-RU') + ' ₽';
@@ -65,69 +65,6 @@ async function tg(method, body) {
   if (!j.ok) throw new Error(`${method}: ${j.description}`);
   return j.result;
 }
-let botName;
-const botUsername = async () => (botName ||= (await tg('getMe')).username);
-
-// Шаблон сообщения клиенту после нажатия Start в боте
-const orderText = o => `Здравствуйте, ${o.name}!
-
-У вас оформлен заказ #${o.id}:
-
-${o.lines.join('\n')}
-
-Итого к оплате: ${rub(o.total)}
-
-Реквизиты для оплаты:
-${PAYMENT_DETAILS || 'менеджер пришлёт их отдельно'}
-
-После оплаты пришлите, пожалуйста, скриншот чека в этот чат.`;
-
-const loadOrder = async id => {
-  const r = blobHost() && (await fetch(`${blobHost()}/orders/${id}.json?t=${Date.now()}`, { cache: 'no-store' }));
-  return r && r.ok ? r.json() : null;
-};
-const saveOrder = order =>
-  put(`orders/${order.id}.json`, JSON.stringify(order), { access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json' });
-
-// Команды владельца в чате CHAT_ID: /status ID текст, /msg CHAT текст
-async function onOwnerMessage(msg) {
-  const reply = text => tg('sendMessage', { chat_id: msg.chat.id, text });
-  const st = /^\/status(?:@\w+)?\s+#?([0-9A-Fa-f]{12})\s+([\s\S]+)$/.exec(msg.text || '');
-  if (st) {
-    const order = await loadOrder(st[1].toUpperCase());
-    if (!order) return reply('Заказ не найден.');
-    if (!order.chat) return reply(`Клиент @${order.tg} ещё не открыл бота — статус отправить некуда.`);
-    await tg('sendMessage', { chat_id: order.chat, text: `Заказ #${order.id}: ${st[2].trim()}` });
-    return reply(`Отправлено @${order.tg}.`);
-  }
-  const dm = /^\/msg(?:@\w+)?\s+(-?\d+)\s+([\s\S]+)$/.exec(msg.text || '');
-  if (dm) {
-    await tg('sendMessage', { chat_id: dm[1], text: dm[2].trim() });
-    return reply('Отправлено.');
-  }
-  if ((msg.text || '').startsWith('/')) {
-    return reply('Команды:\n/status ID текст — статус заказа клиенту\n/msg ЧАТ текст — ответ клиенту (номер чата приходит вместе с его сообщением)');
-  }
-}
-
-async function onBotMessage(msg) {
-  const chat_id = msg.chat.id;
-  const m = /^\/start(?:\s+([0-9A-F]{12}))?$/.exec(msg.text || '');
-  if (!m) {
-    await tg('sendMessage', { chat_id: CHAT_ID, text: `💬 @${msg.from.username || 'без ника'} · чат ${chat_id}\nОтветить: /msg ${chat_id} текст` });
-    return tg('forwardMessage', { chat_id: CHAT_ID, from_chat_id: chat_id, message_id: msg.message_id });
-  }
-  if (!m[1]) return tg('sendMessage', { chat_id, text: 'Здравствуйте! Оформите заказ на сайте — после оформления здесь появятся состав заказа и реквизиты для оплаты.' });
-  const order = await loadOrder(m[1]);
-  if (!order) return tg('sendMessage', { chat_id, text: 'Заказ не найден.' });
-  if ((msg.from.username || '').toLowerCase() !== order.tg.toLowerCase()) {
-    return tg('sendMessage', { chat_id, text: `Заказ оформлен на другой Telegram-ник. Откройте бота с аккаунта @${order.tg}.` });
-  }
-  await tg('sendMessage', { chat_id, text: orderText(order) });
-  if (order.chat !== chat_id) await saveOrder({ ...order, chat: chat_id });
-  await tg('sendMessage', { chat_id: CHAT_ID, text: `Клиент @${order.tg} получил реквизиты по заказу #${order.id}\nСтатус: /status ${order.id} текст` });
-}
-
 // --- auth ---
 const SECRET = crypto.createHash('sha256').update('tempt:' + (ADMIN_PASSWORD || crypto.randomUUID())).digest();
 const sign = v => crypto.createHmac('sha256', SECRET).update(v).digest('hex');
@@ -308,34 +245,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     console.error('Telegram:', e.message);
     return res.status(502).json({ error: 'Не удалось отправить заказ, попробуйте позже' });
   }
-  let bot = null;
-  if (blobHost()) {
-    try {
-      await saveOrder({ id, name, tg: nick, lines, total });
-      bot = await botUsername();
-    } catch (e) {
-      console.error('order save:', e.message);
-    }
-  }
-  res.json({ ok: true, id, bot });
-});
-
-app.post('/api/tg-webhook', async (req, res) => {
-  if (!sameHash(S(req.get('X-Telegram-Bot-Api-Secret-Token')), sign('webhook'))) return res.sendStatus(403);
-  const msg = req.body.message;
-  try {
-    if (msg && String(msg.chat.id) === String(CHAT_ID)) await onOwnerMessage(msg);
-    else if (msg && msg.chat.type === 'private') await onBotMessage(msg);
-  } catch (e) {
-    console.error('webhook:', e.message);
-  }
-  res.sendStatus(200);
-});
-
-app.post('/api/tg-setup', auth, async (req, res) => {
-  if (!BOT_TOKEN || !CHAT_ID) return res.status(400).json({ error: 'Не заданы BOT_TOKEN и CHAT_ID' });
-  await tg('setWebhook', { url: `https://${req.get('host')}/api/tg-webhook`, secret_token: sign('webhook'), allowed_updates: ['message'] });
-  res.json({ ok: true, bot: await botUsername() });
+  res.json({ ok: true, id });
 });
 
 app.use((err, req, res, next) => {

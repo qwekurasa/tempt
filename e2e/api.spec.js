@@ -33,16 +33,11 @@ test.describe('API', () => {
     expect((await request.put('/api/products/demo-tee-1', { data: {} })).status()).toBe(401);
     expect((await request.delete('/api/products/demo-tee-1')).status()).toBe(401);
     expect((await request.post('/api/upload')).status()).toBe(401);
-    expect((await request.post('/api/tg-setup')).status()).toBe(401);
   });
 
   test('ADM-N2 неверный пароль, верный пароль', async ({ request }) => {
     expect((await request.post('/api/login', { data: { password: 'wrong' } })).status()).toBe(401);
     expect((await request.post('/api/login', { data: { password: 'e2e-pass' } })).status()).toBe(200);
     expect((await request.get('/api/me')).status()).toBe(200);
-  });
-
-  test('BOT-N1 вебхук без секрета отклоняется', async ({ request }) => {
-    expect((await request.post('/api/tg-webhook', { data: {} })).status()).toBe(403);
   });
 });

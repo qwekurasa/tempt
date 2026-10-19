@@ -261,11 +261,6 @@ $('#checkout').onsubmit = async e => {
     renderCart();
     e.target.reset();
     $('#order-id').textContent = '#' + j.id;
-    $('#bot-link').hidden = !j.bot;
-    $('#done-text').textContent = j.bot
-      ? 'Нажмите кнопку ниже и Start в боте — пришлём состав заказа и реквизиты для оплаты.'
-      : 'Мы свяжемся с вами в Telegram и пришлём реквизиты для оплаты.';
-    if (j.bot) $('#bot-link').href = `https://t.me/${encodeURIComponent(j.bot)}?start=${j.id}`;
     $('#co-main').hidden = true;
     $('#done').hidden = false;
     scrollTo(0, 0);
