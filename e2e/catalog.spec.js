@@ -14,7 +14,7 @@ test('NAV вкладки О проекте / Доставка / Подборка
   await expect(page.getByRole('link', { name: 'Подборка' })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('link', { name: 'Доставка' }).click();
   await expect(page.getByRole('heading', { name: 'Доставка в Россию и Беларусь' })).toBeVisible();
-  await expect(page.getByText('Самолёт до РФ: от 1 кг | 27 $/кг')).toBeVisible();
+  await expect(page.getByText('Авто быстрое: от 1 кг | 6.2 $/кг')).toBeVisible();
   await a11y(page);
   await page.getByRole('link', { name: 'О проекте' }).click();
   await expect(page.getByRole('heading', { name: 'О проекте' })).toBeVisible();

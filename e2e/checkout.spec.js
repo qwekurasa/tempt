@@ -26,9 +26,9 @@ test('F01-H5 оформление заказа', async ({ page }) => {
   await addTee(page);
   await page.getByRole('link', { name: /^Корзина \d+$/ }).click();
   await expect(page.getByText('BRAND A — TEE 01')).toBeVisible();
-  await expect(page.locator('#total')).toHaveText('5 900 ₽');
+  await expect(page.locator('#subtotal')).toHaveText('5 900 ₽');
   await page.getByRole('button', { name: '+' }).click();
-  await expect(page.locator('#total')).toHaveText('11 800 ₽');
+  await expect(page.locator('#subtotal')).toHaveText('11 800 ₽');
   await fill(page);
   await page.getByRole('checkbox', { name: /Согласен/ }).check();
   await page.getByRole('button', { name: 'Оформить заказ' }).click();

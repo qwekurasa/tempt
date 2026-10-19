@@ -38,25 +38,13 @@ const GROUPS = [
 const oneBrand = () => (sel.brand.size === 1 ? [...sel.brand][0] : '');
 
 // --- доставка ---
-const round10 = n => Math.round(n / 10) * 10;
-const range = ([a, b]) => `~${round10(a).toLocaleString('ru-RU')}–${rub(round10(b))}`;
-
-// Примерная доставка до РФ: вес (не меньше 1 кг) × тариф $/кг × курс $ + сбор по Китаю (¥ за позицию)
-function shipEstimate(kg, positions = 1) {
-  const s = settings;
-  if (!kg || !s.cny || !s.usd) return null;
-  const w = Math.max(kg, 1);
-  const fee = [s.chinaFeeMin * s.cny * positions, s.chinaFeeMax * s.cny * positions];
-  const auto = w * (w >= 10 ? s.auto10 : s.auto1) * s.usd;
-  const air = w * s.air * s.usd;
-  return { auto: [auto + fee[0], auto + fee[1]], air: [air + fee[0], air + fee[1]] };
-}
+const qitem = (p, qty = 1) => ({ price: p.price, qty, weight: p.weight, cat: p.cat });
 
 function renderDelivery() {
-  document.querySelectorAll('#delivery [data-s]').forEach(el => (el.textContent = settings[el.dataset.s] ?? '—'));
-  $('#rates').textContent = settings.cny && settings.usd
-    ? `Курс: 1 ¥ = ${settings.cny} ₽ · 1 $ = ${settings.usd} ₽`
-    : 'Курс уточняйте в Telegram';
+  const st = Shipping.settings(settings);
+  document.querySelectorAll('#delivery [data-t]').forEach(el => (el.textContent = st[el.dataset.t]));
+  $('#cats').innerHTML = Object.entries(Shipping.CATS).map(([k, label]) => `<li>${esc(label)}: ${st['cat_' + k]} ¥</li>`).join('');
+  $('#rates').textContent = st.cny && st.usd ? `Курс: 1 ¥ = ${st.cny} ₽ · 1 $ = ${st.usd} ₽` : 'Курс уточняйте в Telegram';
 }
 
 function renderFilters() {
@@ -119,10 +107,11 @@ function showProduct(id) {
   $('#p-name').textContent = current.name;
   $('#p-price').textContent = $('#p-price2').textContent = rub(current.price);
   $('#open').hidden = !!current.soldOut;
-  const ship = shipEstimate(current.weight);
+  const q = Shipping.quote([qitem(current)], settings);
+  const ship = q.complete ? q.china + q.intl : null;
   $('#p-status').textContent = current.soldOut
     ? 'Нет в наличии'
-    : ship ? `Доставка до РФ: авто ${range(ship.auto)} · самолёт ${range(ship.air)}` : current.eta ? `Срок доставки: ${current.eta}` : '';
+    : ship ? `Примерная стоимость доставки до РФ: ~${rub(ship)}` : current.eta ? `Срок доставки: ${current.eta}` : '';
   $('#sizes').innerHTML = current.sizes.map(s => `<button data-s="${esc(s)}">${esc(s)}</button>`).join('');
   $('#buy-title').textContent = 'Выберите размер';
   $('#p-info').textContent = [
@@ -133,8 +122,9 @@ function showProduct(id) {
     current.sizes.length && 'Размеры: ' + current.sizes.join(', '),
     current.eta && 'Срок доставки: ' + current.eta,
     current.weight && `Примерный вес: ${current.weight} кг`,
-    ship && `Доставка до РФ, авто (18–25 дней): ${range(ship.auto)}`,
-    ship && `Доставка до РФ, самолёт (2–7 дней): ${range(ship.air)}`,
+    ship && `Примерная доставка по Китаю: ~${rub(q.china)}`,
+    ship && `Примерная доставка авто до РФ (18–25 дней): ~${rub(q.intl)}`,
+    ship && `+ ${rub(q.tk)} за перекидку на ТК — один раз за заказ`,
   ].filter(x => x !== false && x !== undefined && x !== null).join('\n').trim();
   $('#p-info').hidden = true;
   $('#info-btn').setAttribute('aria-expanded', 'false');
@@ -179,22 +169,25 @@ function closeLb() {
 // --- корзина ---
 function renderCart() {
   const lines = cart.map(l => ({ ...l, p: products.find(p => p.id === l.id) }));
-  const total = lines.reduce((s, l) => s + l.p.price * l.qty, 0);
+  const q = Shipping.quote(lines.map(l => qitem(l.p, l.qty)), settings);
   const count = cart.reduce((s, l) => s + l.qty, 0);
   $('#cart-count').textContent = count || '';
   document.querySelector('.bag').setAttribute('aria-label', `Корзина ${count}`);
   $('#cart-count2').textContent = count;
   $('#lines').innerHTML = lines.length
-    ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${[l.size && 'Размер ' + esc(l.size), l.p.eta && 'Срок ' + esc(l.p.eta)].filter(Boolean).join(' · ')}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div>${rub(l.p.price * l.qty)}</div></div>`).join('')
+    ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${[l.size && 'Размер ' + esc(l.size), l.p.eta && 'Срок ' + esc(l.p.eta)].filter(Boolean).join(' · ')}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div class="co-sum-col">${rub(l.p.price * l.qty)}<div class="mute">+ ${q.lines[i].chinaCny} ¥${q.lines[i].china !== null ? ` ≈ ${rub(q.lines[i].china)}` : ''}</div></div></div>`).join('')
     : '<p class="co-empty">Корзина пуста<br><a class="co-link" href="#/">Перейти в каталог</a></p>';
-  $('#subtotal').textContent = $('#total').textContent = rub(total);
-  const weight = lines.reduce((s, l) => s + (l.p.weight || 0) * l.qty, 0);
-  const ship = lines.length && lines.every(l => l.p.weight) ? shipEstimate(weight, lines.length) : null;
-  $('#ship-auto').textContent = ship ? range(ship.auto) : '—';
-  $('#ship-air').textContent = ship ? range(ship.air) : '—';
-  $('#ship-note').textContent = ship
-    ? `Примерно, по весу ~${Math.round(weight * 10) / 10} кг. Точную сумму и доставку по России посчитаем по приезду груза.`
-    : lines.length ? 'Стоимость доставки посчитаем после оформления.' : '';
+  const or = v => (v === null ? '—' : rub(v));
+  $('#subtotal').textContent = rub(q.goods);
+  $('#ship-china').textContent = q.china === null ? (lines.length ? q.chinaCny + ' ¥' : '—') : rub(q.china);
+  $('#ship-intl-label').textContent = q.weight ? `Авто до РФ, ~${q.weight} кг × ${q.rate} $` : 'Авто до РФ';
+  $('#ship-intl').textContent = or(q.intl);
+  $('#ship-tk').textContent = lines.length ? rub(q.tk) : '—';
+  $('#total-label').textContent = q.complete ? 'Итого, примерно' : 'Итого без неизвестных частей';
+  $('#total').textContent = rub(q.total);
+  $('#ship-note').textContent = !lines.length ? '' : q.complete
+    ? 'Доставка рассчитана примерно, по весу и курсу. Доставку по России посчитаем по приезду груза в РФ.'
+    : 'Часть доставки посчитаем после оформления. Доставку по России — по приезду груза в РФ.';
   $('#submit').disabled = !lines.length;
 }
 

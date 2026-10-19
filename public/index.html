@@ -54,17 +54,17 @@
   <ul>
     <li>Перевозка по Китаю: 3–10 дней</li>
     <li>Авто быстрое до РФ: 18–25 дней</li>
-    <li>Самолёт до РФ: 2–7 дней</li>
   </ul>
 
   <h2>Стоимость доставки</h2>
   <ul>
-    <li>Авто быстрое: от 1 кг | <span data-s="auto1"></span> $/кг</li>
-    <li>Авто быстрое: от 10 кг | <span data-s="auto10"></span> $/кг</li>
-    <li>Самолёт до РФ: от 1 кг | <span data-s="air"></span> $/кг</li>
+    <li>Авто быстрое: от 1 кг | <span data-t="auto1"></span> $/кг</li>
+    <li>Авто быстрое: от 10 кг | <span data-t="auto10"></span> $/кг</li>
   </ul>
-  <p>Дополнительный сбор за доставку по Китаю: <span data-s="chinaFeeMin"></span>–<span data-s="chinaFeeMax"></span> ¥</p>
+  <h2>Доставка по Китаю, за 1 вещь</h2>
+  <ul id="cats"></ul>
   <p class="rates" id="rates"></p>
+  <p class="rates">Вес считается от 1 кг, тариф от 10 кг — на общий вес заказа.</p>
 
   <h2>Самовыкуп</h2>
   <ul><li>Комиссия: 4% от стоимости товара</li></ul>
@@ -142,10 +142,11 @@
       <div id="lines"></div>
       <div class="co-rows">
         <div class="co-row"><span>Товары</span><span id="subtotal"></span></div>
-        <div class="co-row"><span>Доставка до РФ, авто</span><span id="ship-auto">—</span></div>
-        <div class="co-row"><span>Доставка до РФ, самолёт</span><span id="ship-air">—</span></div>
+        <div class="co-row"><span>Доставка по Китаю</span><span id="ship-china">—</span></div>
+        <div class="co-row"><span id="ship-intl-label">Авто до РФ</span><span id="ship-intl">—</span></div>
+        <div class="co-row"><span>Перекидка на ТК</span><span id="ship-tk">—</span></div>
+        <div class="co-row co-total"><span id="total-label">Итого</span><span id="total"></span></div>
         <p class="co-note" id="ship-note"></p>
-        <div class="co-row co-total"><span>Итого за товары</span><span id="total"></span></div>
       </div>
     </aside>
   </div>
@@ -165,6 +166,7 @@
   <div class="lb-count" id="lb-count"></div>
 </div>
 
+<script src="/shipping.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

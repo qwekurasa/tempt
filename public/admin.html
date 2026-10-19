@@ -15,6 +15,10 @@
   .actions{display:flex;gap:16px}
   .actions button:hover{color:var(--text-muted)}
   #login{max-width:340px;margin:20vh auto 0}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form select{background:var(--bg);color:var(--text);border:1px solid var(--accent);border-radius:0;padding:11px 12px;font:13px var(--mono)}
+  .tabs button{color:var(--text-muted)}
+  .tabs button.on{color:var(--text)}
   @media (max-width:800px){.cols{grid-template-columns:1fr}}
 </style>
 </head>
@@ -27,8 +31,32 @@
 </form>
 
 <div id="panel" hidden>
-  <header><span></span><a class="logo" href="/">TEMPT</a><button id="logout">Выйти</button></header>
-  <div class="wrap cols">
+  <header>
+    <nav class="tabs" id="admin-tabs"><button data-tab="products" class="on">Товары</button><button data-tab="settings">Настройки</button></nav>
+    <a class="logo" href="/">TEMPT</a>
+    <button id="logout">Выйти</button>
+  </header>
+
+  <form class="form wrap" id="rates" hidden style="max-width:560px">
+    <div>Курсы</div>
+    <div class="g2">
+      <label>1 ¥ = ₽<input name="cny" type="number" min="0.01" step="0.01" required></label>
+      <label>1 $ = ₽<input name="usd" type="number" min="0.01" step="0.01" required></label>
+    </div>
+    <div style="margin-top:12px">Авто быстрое до РФ</div>
+    <div class="g2">
+      <label>От 1 кг, $/кг<input name="auto1" type="number" min="0.01" step="0.01" required></label>
+      <label>От 10 кг, $/кг<input name="auto10" type="number" min="0.01" step="0.01" required></label>
+    </div>
+    <label>Перекидка на ТК, ₽ за заказ<input name="tk" type="number" min="1" step="1" required></label>
+    <div style="margin-top:12px">Доставка по Китаю, ¥ за 1 вещь</div>
+    <div class="g2" id="cat-fees"></div>
+    <p class="note">Вес заказа считается от 1 кг. Тариф «от 10 кг» применяется, когда общий вес корзины 10 кг и больше.</p>
+    <p class="err" id="rates-err"></p>
+    <button class="btn" id="rates-submit">Сохранить настройки</button>
+  </form>
+
+  <div class="wrap cols" id="products-tab">
     <form class="form" id="pf">
       <div id="pf-title">Новый товар</div>
       <input type="hidden" name="id">
@@ -37,6 +65,7 @@
       <datalist id="brand-list"></datalist>
       <label>Цвет<input name="color" maxlength="60" placeholder="Например: CREAM WHITE"></label>
       <label>Срок доставки<input name="eta" maxlength="40" placeholder="Например: 14–21 день"></label>
+      <label>Категория доставки по Китаю<select name="cat" id="cat-select"></select></label>
       <label>Примерный вес, кг<input name="weight" type="number" min="0" max="100" step="0.01" placeholder="Например: 1.2"></label>
       <label>Цена, ₽<input name="price" type="number" min="1" step="1" required></label>
       <label>Размеры через запятую<input name="sizes" placeholder="S, M, L или 40, 41, 42"></label>
@@ -49,21 +78,13 @@
       <button class="btn ghost" type="button" id="pf-cancel" hidden>Отмена</button>
     </form>
     <div>
-      <form class="form" id="rates" style="margin-bottom:32px">
-        <div>Курсы для расчёта доставки</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <label>1 ¥ = ₽<input name="cny" type="number" min="0.01" step="0.01" required></label>
-          <label>1 $ = ₽<input name="usd" type="number" min="0.01" step="0.01" required></label>
-        </div>
-        <p class="err" id="rates-err"></p>
-        <button class="btn" id="rates-submit">Сохранить курсы</button>
-      </form>
       <div class="mute" style="margin-bottom:8px">Товары (<span id="count">0</span>)</div>
       <div id="list"></div>
     </div>
   </div>
 </div>
 
+<script src="/shipping.js"></script>
 <script src="/admin.js"></script>
 </body>
 </html>

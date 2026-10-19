@@ -1,0 +1,47 @@
+// Расчёт доставки. Один файл для сайта (window.Shipping) и сервера (require).
+// Все числа — в настройках админки; здесь значения по умолчанию.
+(function (root) {
+  const DEFAULTS = {
+    cny: 0, // ₽ за 1 ¥
+    usd: 0, // ₽ за 1 $
+    auto1: 6.2, // $/кг, авто от 1 кг
+    auto10: 4.5, // $/кг, авто от 10 кг (по общему весу заказа)
+    tk: 250, // ₽, перекидка на ТК — раз за заказ
+    cat_s: 5, // ¥ за 1 вещь по Китаю
+    cat_m: 10,
+    cat_l: 15,
+    cat_xl: 20,
+  };
+  const CATS = {
+    s: 'Мелкое: носки, аксессуары',
+    m: 'Футболки, шорты, лонгсливы',
+    l: 'Худи, свитшоты, штаны',
+    xl: 'Обувь, куртки, крупное',
+  };
+  const cat = c => (CATS[c] ? c : 'm');
+  const settings = s => ({ ...DEFAULTS, ...s });
+
+  // items: [{ price, qty, weight, cat }]. null — посчитать нельзя (нет курса или веса).
+  function quote(items, s) {
+    s = settings(s);
+    const ok = s.cny > 0 && s.usd > 0;
+    const lines = items.map(i => {
+      const chinaCny = s['cat_' + cat(i.cat)] * i.qty;
+      return { goods: i.price * i.qty, chinaCny, china: ok ? Math.round(chinaCny * s.cny) : null };
+    });
+    const goods = lines.reduce((a, l) => a + l.goods, 0);
+    const chinaCny = lines.reduce((a, l) => a + l.chinaCny, 0);
+    const china = ok ? lines.reduce((a, l) => a + l.china, 0) : null;
+    const weight = Math.round(items.reduce((a, i) => a + (i.weight || 0) * i.qty, 0) * 100) / 100;
+    const kg = Math.max(weight, 1);
+    const rate = kg >= 10 ? s.auto10 : s.auto1;
+    const intl = ok && items.length && items.every(i => i.weight > 0) ? Math.round(kg * rate * s.usd) : null;
+    const tk = items.length ? s.tk : 0;
+    const complete = china !== null && intl !== null;
+    return { lines, goods, chinaCny, china, intl, tk, weight, kg, rate, total: goods + (china || 0) + (intl || 0) + tk, complete };
+  }
+
+  const api = { DEFAULTS, CATS, cat, settings, quote };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Shipping = api;
+})(this);

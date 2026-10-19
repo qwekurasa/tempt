@@ -22,8 +22,7 @@ async function showPanel() {
   $('#panel').hidden = false;
   const [list, rates] = await Promise.all([api('/api/products?fresh'), api('/api/settings?fresh')]);
   products = list;
-  $('#rates').cny.value = rates.cny || '';
-  $('#rates').usd.value = rates.usd || '';
+  for (const [k, v] of Object.entries(rates)) if ($('#rates')[k]) $('#rates')[k].value = v || '';
   $('#count').textContent = products.length;
   $('#brand-list').innerHTML = [...new Set(products.map(p => p.brand))].map(b => `<option value="${esc(b)}">`).join('');
   $('#list').innerHTML = products.map(p => `
@@ -92,7 +91,7 @@ form.onsubmit = async e => {
       }
     }
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, cat: form.cat.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
     await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -110,15 +109,26 @@ form.onsubmit = async e => {
 
 $('#pf-cancel').onclick = resetForm;
 
+$('#cat-select').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<option value="${k}"${k === 'm' ? ' selected' : ''}>${esc(l)}</option>`).join('');
+$('#cat-fees').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<label>${esc(l)}<input name="cat_${k}" type="number" min="0.01" step="0.01" required></label>`).join('');
+$('#admin-tabs').onclick = e => {
+  const t = e.target.dataset.tab;
+  if (!t) return;
+  $('#products-tab').hidden = t !== 'products';
+  $('#rates').hidden = t !== 'settings';
+  $('#admin-tabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
+};
+
 $('#rates').onsubmit = async e => {
   e.preventDefault();
   const f = e.target;
   $('#rates-err').textContent = '';
   $('#rates-submit').disabled = true;
   try {
-    await api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cny: f.cny.value, usd: f.usd.value }) });
+    const body = Object.fromEntries(Object.keys(Shipping.DEFAULTS).map(k => [k, f[k].value]));
+    await api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     $('#rates-submit').textContent = 'Сохранено ✓';
-    setTimeout(() => ($('#rates-submit').textContent = 'Сохранить курсы'), 1500);
+    setTimeout(() => ($('#rates-submit').textContent = 'Сохранить настройки'), 1500);
   } catch (err) {
     $('#rates-err').textContent = err.message;
   } finally {
@@ -151,6 +161,7 @@ $('#list').onclick = async e => {
     form.brand.value = p.brand;
     form.color.value = p.color || '';
     form.weight.value = p.weight || '';
+    form.cat.value = Shipping.cat(p.cat);
     form.eta.value = p.eta || '';
     form.soldOut.checked = !!p.soldOut;
     form.price.value = p.price;

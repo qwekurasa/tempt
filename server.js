@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const path = require('path');
 const { put, del } = require('@vercel/blob');
 const seed = require('./data/products.json');
+const Shipping = require('./public/shipping.js');
 
 const { PORT = 3000, ADMIN_PASSWORD, BOT_TOKEN, CHAT_ID } = process.env;
 
@@ -31,14 +32,13 @@ async function load(fresh) {
   if (!r.ok) throw new Error('products: ' + r.status);
   return r.json();
 }
-// Курсы и тарифы доставки. Тарифы — как на странице «Доставка», курсы меняются в админке.
-const SETTINGS_DEFAULT = { cny: 0, usd: 0, auto1: 6.2, auto10: 4.5, air: 27, chinaFeeMin: 10, chinaFeeMax: 15 };
-let memSettings = { ...SETTINGS_DEFAULT }; // без Blob (локально) — в памяти
+// Курсы и тарифы доставки, меняются в админке. Значения по умолчанию — public/shipping.js.
+let memSettings = Shipping.settings({}); // без Blob (локально) — в памяти
 async function loadSettings(fresh) {
   const host = blobHost();
   if (!host) return memSettings;
   const r = await fetch(`${host}/settings.json${fresh ? '?t=' + Date.now() : ''}`, { cache: 'no-store' });
-  return { ...SETTINGS_DEFAULT, ...(r.ok ? await r.json() : {}) };
+  return Shipping.settings(r.ok ? await r.json() : {});
 }
 async function saveSettings(v) {
   if (!blobHost()) return (memSettings = v);
@@ -100,6 +100,7 @@ function productFields(b) {
     name: S(b.name).slice(0, 120),
     brand: S(b.brand).toUpperCase().slice(0, 60),
     color: S(b.color).toUpperCase().slice(0, 60),
+    cat: Shipping.cat(b.cat),
     weight: Math.min(Math.max(Math.round(Number(b.weight) * 100) / 100 || 0, 0), 100),
     price: Math.round(Number(b.price)),
     sizes: S(b.sizes).split(',').map(s => s.trim().slice(0, 20)).filter(Boolean).slice(0, 30),
@@ -144,10 +145,13 @@ app.get('/api/settings', async (req, res) => {
   res.json(await loadSettings(isAdmin(req) && 'fresh' in req.query));
 });
 app.put('/api/settings', auth, async (req, res) => {
-  const rate = v => Math.round(Number(v) * 10000) / 10000;
-  const cny = rate(req.body.cny), usd = rate(req.body.usd);
-  if (!(cny > 0 && cny < 1000 && usd > 0 && usd < 10000)) return res.status(400).json({ error: 'Укажите курсы юаня и доллара' });
-  res.json(await saveSettings({ ...(await loadSettings(true)), cny, usd }));
+  const v = {};
+  for (const k of Object.keys(Shipping.DEFAULTS)) {
+    const n = Math.round(Number(req.body[k]) * 10000) / 10000;
+    if (!(n > 0 && n < 100000)) return res.status(400).json({ error: 'Заполните все поля положительными числами' });
+    v[k] = n;
+  }
+  res.json(await saveSettings(v));
 });
 
 app.post('/api/upload', auth, express.raw({ type: Object.keys(EXT), limit: '4mb' }), async (req, res) => {
@@ -208,8 +212,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
   const products = await load();
   const items = Array.isArray(b.items) ? b.items.slice(0, 50) : [];
   const lines = [];
-  let total = 0;
-  let weight = 0;
+  const qitems = [];
   for (const it of items) {
     const p = products.find(x => x.id === it.id);
     const qty = Math.floor(Number(it.qty));
@@ -218,10 +221,12 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
       return res.status(400).json({ error: 'Корзина устарела, обновите страницу' });
     }
     if (p.soldOut) return res.status(400).json({ error: `Товар закончился: ${p.name}` });
-    total += p.price * qty;
-    weight += (p.weight || 0) * qty;
-    lines.push(`${lines.length + 1}. ${p.brand} — ${p.name}${size ? ' · ' + size : ''} × ${qty} = ${rub(p.price * qty)}${p.eta ? `, срок ${p.eta}` : ''}`);
+    qitems.push({ price: p.price, qty, weight: p.weight, cat: p.cat });
+    lines.push({ p, size, qty });
   }
+  const q = Shipping.quote(qitems, await loadSettings());
+  lines.forEach((l, i) => (lines[i] = `${i + 1}. ${l.p.brand} — ${l.p.name}${l.size ? ' · ' + l.size : ''} × ${l.qty} = ${rub(l.p.price * l.qty)} + ${q.lines[i].chinaCny} ¥ по Китаю${l.p.eta ? `, срок ${l.p.eta}` : ''}`));
+  const or = (v, alt) => (v === null ? alt : rub(v));
   if (!lines.length) return res.status(400).json({ error: 'Корзина пуста' });
   if (!BOT_TOKEN || !CHAT_ID) return res.status(500).json({ error: 'Приём заказов не настроен' });
 
@@ -231,8 +236,11 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     '',
     ...lines,
     '',
-    `Итого: ${rub(total)}`,
-    ...(weight ? [`Вес ≈ ${Math.round(weight * 10) / 10} кг`] : []),
+    `Товары: ${rub(q.goods)}`,
+    `Доставка по Китаю: ${or(q.china, q.chinaCny + ' ¥')}`,
+    `Авто до РФ (≈${q.weight || '?'} кг × ${q.rate} $): ${or(q.intl, 'не посчитано')}`,
+    `Перекидка на ТК: ${rub(q.tk)}`,
+    `Итого${q.complete ? ' (примерно)' : ' без неизвестных частей'}: ${rub(q.total)}`,
     '',
     `ФИО: ${name}`,
     `Telegram: @${nick}`,
