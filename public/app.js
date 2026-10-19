@@ -126,11 +126,8 @@ function showProduct(id) {
     'Бренд: ' + current.brand,
     current.color && 'Цвет: ' + current.color,
     current.sizes.length && 'Размеры: ' + current.sizes.join(', '),
-    current.eta && 'Срок доставки: ' + current.eta,
     current.weight && `Примерный вес: ${current.weight} кг`,
-    ship && `Примерная доставка по Китаю: ~${rub(q.china)}`,
     ship && `Примерная доставка авто до РФ (18–25 дней): ~${rub(q.intl)}`,
-    ship && `+ ${rub(q.tk)} за перекидку на ТК — один раз за заказ`,
   ].filter(x => x !== false && x !== undefined && x !== null).join('\n').trim();
   $('#p-info').hidden = true;
   $('#info-btn').setAttribute('aria-expanded', 'false');

@@ -17,8 +17,7 @@
     <a class="logo" href="#/"><img src="/logo.svg" alt="TEMPT" width="56" height="28"></a>
   </div>
   <nav class="tabs" id="tabs" aria-label="Разделы">
-    <span class="tl"><a href="#/about" data-tab="about">О проекте</a><a href="#/delivery" data-tab="delivery">Доставка</a></span>
-    <span class="tr"><a href="#/forum" data-tab="forum">Форум</a></span>
+    <span class="tr"><a href="#/about" data-tab="about">О проекте</a><a href="#/delivery" data-tab="delivery">Доставка</a><a href="#/forum" data-tab="forum">Форум</a></span>
   </nav>
   <div class="top-r">
   <button class="icon-btn" id="theme" aria-label="Сменить тему"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg></button>
@@ -40,7 +39,7 @@
     <aside class="filters" id="filters" aria-label="Фильтры"></aside>
     <div class="grid" id="grid"></div>
   </div>
-  <footer class="foot"><span>© TEMPT</span><a href="/privacy.html">Политика конфиденциальности</a></footer>
+  <footer class="foot"><span>© TEMPT</span><a href="/privacy.html">Политика конфиденциальности</a><a href="/consent.html">Согласие на обработку ПД</a></footer>
 </main>
 
 <section class="feed" id="forum" hidden><div id="posts"></div></section>
@@ -88,6 +87,7 @@
 </section>
 
 <section class="pdp" id="product" hidden>
+  <a class="p-back" href="#/">‹ Назад в каталог</a>
   <div class="gal">
     <div class="gallery" id="gallery" tabindex="0" role="region" aria-label="Фото товара"></div>
     <button class="arrow prev" id="g-prev" aria-label="Предыдущее фото">‹</button>
@@ -109,7 +109,6 @@
     <div class="p-status" id="p-status" aria-live="polite"></div>
     <button class="link" id="info-btn" aria-expanded="false">Информация</button>
     <div class="p-info" id="p-info" hidden></div>
-    <a class="p-back" href="#/">‹ Назад в каталог</a>
   </div>
 </section>
 
@@ -136,7 +135,7 @@
       </div>
       <label>Точный адрес пункта выдачи<textarea name="address" rows="3" required minlength="5" maxlength="300" placeholder="Город, улица, дом"></textarea></label>
 
-      <label class="co-consent"><input type="checkbox" name="consent" required><span>Согласен на обработку персональных данных по <a href="/privacy.html" target="_blank">политике конфиденциальности</a></span></label>
+      <label class="co-consent"><input type="checkbox" name="consent" required><span>Даю <a href="/consent.html" target="_blank">согласие на обработку персональных данных</a> и принимаю <a href="/privacy.html" target="_blank">политику конфиденциальности</a></span></label>
       <p class="err" id="err"></p>
       <button class="co-btn" id="submit">Оформить заказ</button>
     </form>

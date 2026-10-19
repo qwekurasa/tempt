@@ -254,7 +254,7 @@ html:not([data-theme=dark]) .img img,html:not([data-theme=dark]) .gallery img,ht
   #top .logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
   #top .tabs{position:absolute;inset:0;justify-content:center;align-items:center;pointer-events:none}
   #top .tabs a{pointer-events:auto}
-  #top .tabs{display:grid;grid-template-columns:1fr 150px 1fr}
+  #top .tabs{display:grid;grid-template-columns:1fr 120px 1fr}
   #top .tl{grid-column:1;justify-self:end;display:flex;gap:28px}
   #top .tr{grid-column:3;justify-self:start;display:flex;gap:28px}
 }
@@ -267,7 +267,7 @@ html:not([data-theme=dark]) .img img,html:not([data-theme=dark]) .gallery img,ht
 .gallery img{flex:1 1 0;min-width:0;max-width:440px;aspect-ratio:1;height:auto}
 .gallery{justify-content:center}
 #g-prev,#g-next,#dots{display:none!important}
-.p-back{margin-top:24px;font-size:11px;color:var(--text-muted)}
+.p-back{margin-bottom:16px;font-size:11px;color:var(--text-muted)}
 .p-back:hover{color:var(--text)}
 @media (min-width:801px){#pback{display:none!important}}
 @media (max-width:800px){.gal{padding:0 12px}.gallery{gap:4px;overflow-x:auto;justify-content:flex-start}.gallery img{flex:0 0 44%}}
