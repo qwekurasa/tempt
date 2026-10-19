@@ -158,6 +158,24 @@ app.post('/api/logout', (req, res) => {
   res.setHeader('Set-Cookie', 'admin=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
   res.json({ ok: true });
 });
+// ВРЕМЕННО: проверка кэша Blob после перезаписи. Удалить после проверки.
+app.get('/api/_cachetest', async (req, res) => {
+  if (req.query.k !== 'tempt-ct-7f3a') return res.sendStatus(404);
+  const host = blobHost();
+  const opt = { access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json', cacheControlMaxAge: 60 };
+  const rd = async q => { const r = await fetch(`${host}/debug/ct.json${q}`, { cache: 'no-store' }); return { body: await r.text(), etag: r.headers.get('etag'), age: r.headers.get('age') }; };
+  const out = {};
+  await put('debug/ct.json', JSON.stringify({ n: 1 }), opt);
+  out.prime = await rd('');
+  out.primeQ = await rd('?t=prime');
+  await put('debug/ct.json', JSON.stringify({ n: 2 }), opt);
+  out.afterPlain = await rd('');
+  out.afterNewQuery = await rd('?t=' + Date.now());
+  out.afterOldQuery = await rd('?t=prime');
+  await del(`${host}/debug/ct.json`);
+  res.json(out);
+});
+
 app.get('/api/me', auth, (req, res) => res.json({ ok: true }));
 
 app.get('/api/settings', async (req, res) => {
