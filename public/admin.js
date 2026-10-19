@@ -117,10 +117,30 @@ $('#logout').onclick = async () => {
 
 // Фото грузятся как есть, без сжатия: до 4 МБ через сервер, больше — напрямую в Blob
 let blobClient;
+const OK_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+// HEIC и прочие форматы — в JPEG в исходном разрешении
+async function toJpeg(f, max = Infinity) {
+  const bmp = await createImageBitmap(f);
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k);
+  c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(r => c.toBlob(r, 'image/jpeg', 0.95));
+}
+const viaServer = f => api('/api/upload', { method: 'POST', headers: { 'Content-Type': f.type }, body: f }).then(r => r.url);
 async function uploadImage(f) {
-  if (f.size <= 4 * 1024 * 1024) return (await api('/api/upload', { method: 'POST', headers: { 'Content-Type': f.type }, body: f })).url;
-  blobClient ||= await import('https://esm.sh/@vercel/blob@2.8.2/client');
-  return (await blobClient.upload('images/' + f.name.replace(/[^\w.-]/g, '_'), f, { access: 'public', handleUploadUrl: '/api/upload-token', contentType: f.type })).url;
+  if (!OK_TYPES.includes(f.type)) f = await toJpeg(f);
+  if (f.size <= 4 * 1024 * 1024) return viaServer(f);
+  try {
+    blobClient ||= await import('https://esm.sh/@vercel/blob@2.8.2/client');
+    return (await blobClient.upload('images/photo' + ({ 'image/png': '.png', 'image/webp': '.webp', 'image/avif': '.avif' }[f.type] || '.jpg'), f, { access: 'public', handleUploadUrl: '/api/upload-token', contentType: f.type })).url;
+  } catch (e) {
+    console.warn('Прямая загрузка не удалась', e);
+    let j = await toJpeg(f);
+    if (j.size > 4 * 1024 * 1024) j = await toJpeg(f, 4000);
+    return viaServer(j);
+  }
 }
 
 form.onsubmit = async e => {
