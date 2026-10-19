@@ -392,3 +392,9 @@ $('#checkout').onsubmit = async e => {
   renderCart();
   route();
 })();
+
+$('#theme').onclick = () => {
+  const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = t;
+  try { localStorage.theme = t; } catch {}
+};

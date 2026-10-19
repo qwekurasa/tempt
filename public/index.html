@@ -6,6 +6,8 @@
 <title>TEMPT</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css">
+<script>try{document.documentElement.dataset.theme=localStorage.theme||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script>
+
 </head>
 <body>
 <header id="top">
@@ -20,7 +22,10 @@
     <a href="#/" data-tab="home">Подборка</a>
     <a href="#/forum" data-tab="forum">Форум</a>
   </nav>
+  <div class="top-r">
+  <button class="icon-btn" id="theme" aria-label="Сменить тему"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg></button>
   <a class="bag" href="#/cart" aria-label="Корзина"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 5.5h10l-.8 8.5H3.8z"/><path d="M5.8 5.5V4a2.2 2.2 0 0 1 4.4 0v1.5"/></svg><span id="cart-count"></span></a>
+  </div>
 </header>
 
 <main id="home">
