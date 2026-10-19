@@ -1,14 +1,14 @@
 feature,area,priority,original,clone,notes
-Сетка каталога с фото без фона,catalog,must,yes,yes,"карточки на светлой подложке, по референсу пользователя"
-Подпись под фото моноширинным шрифтом,catalog,should,yes,skip,подпись внутри карточки по референсу пользователя
-Переключение плотности сетки 6/3 колонки,catalog,should,yes,skip,конфликтует с сайдбаром фильтров по референсу пользователя
-Фильтр по брендам,catalog,must,no,yes,параметр tempt вместо MALE/FEMALE
+Сетка каталога с фото без фона,catalog,must,yes,yes,"6 колонок, фото без подложки, подпись под фото"
+Подпись под фото моноширинным шрифтом,catalog,should,yes,yes,
+Переключение плотности сетки 6/3 колонки,catalog,should,yes,yes,"«+» в шапке, запоминается"
+Фильтр по брендам,catalog,must,no,yes,бренды в шапке вместо MALE/FEMALE
 Деление MALE/FEMALE,catalog,could,yes,skip,исключено по требованию
-Оверлей товара без смены страницы,product,should,yes,skip,отдельная страница товара по референсу пользователя
+Оверлей товара без смены страницы,product,should,yes,partial,товар по центру на своём адресе #/p/id — чтобы ссылкой можно было поделиться
 Галерея с точками,product,must,yes,yes,
-Панель выбора размера,product,must,yes,yes,размеры в плашке покупки
+Панель выбора размера,product,must,yes,yes,"«+» → панель размеров, клик по размеру добавляет"
 Размерная сетка «?»,product,could,yes,no,
-Раскрываемое описание INFORMATION,product,should,yes,skip,заменено открытыми секциями по референсу пользователя
+Раскрываемое описание INFORMATION,product,should,yes,yes,
 Статус «нет в наличии / restock»,product,could,yes,partial,"флаг «Нет в наличии» в админке, без даты restock"
 Корзина и оформление одной страницей,checkout,must,yes,yes,
 Пустая корзина,checkout,must,yes,yes,
@@ -24,7 +24,7 @@ feature,area,priority,original,clone,notes
 Cookie-баннер,legal,could,yes,skip,маркетинговых cookie нет
 Юр. страницы (контакты / оферта / приватность),legal,should,yes,partial,"политика ПД + согласие в форме; реквизиты оператора — заглушки, оферты нет"
 Админка: добавление и редактирование товаров,admin,must,no,yes,параметр tempt
-Моноширинная типографика капсом,design,should,yes,partial,"только корзина/оформление, по референсу пользователя"
+Моноширинная типографика капсом,design,should,yes,yes,на всём сайте
 Срок доставки на товаре и в корзине,product,must,no,yes,fix: 22 отзыва о месяцах ожидания
 Статус заказа из бота (/status),checkout,must,no,yes,fix: 20 отзывов о молчащей поддержке + 6 о статусе
 Ответ клиенту из бота (/msg),checkout,should,no,yes,fix: поддержка в одном чате

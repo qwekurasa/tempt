@@ -2,8 +2,9 @@ const { test, expect, a11y } = require('./fixtures');
 
 async function addTee(page, size = 'M') {
   await page.goto('/#/p/demo-tee-1');
+  await page.getByRole('button', { name: 'Выбрать размер' }).click();
   await page.getByRole('button', { name: size, exact: true }).click();
-  await page.getByRole('button', { name: 'В корзину' }).click();
+  await expect(page.locator('#p-status')).toContainText('Добавлено');
 }
 
 async function fill(page) {
@@ -23,7 +24,7 @@ test('F01-E5 пустая корзина: оформить нельзя', async 
 
 test('F01-H5 оформление заказа', async ({ page }) => {
   await addTee(page);
-  await page.getByRole('link', { name: /Корзина/ }).click();
+  await page.getByRole('link', { name: /^Корзина \d+$/ }).click();
   await expect(page.getByText('BRAND A — TEE 01')).toBeVisible();
   await expect(page.locator('#total')).toHaveText('5 900 ₽');
   await page.getByRole('button', { name: '+' }).click();
