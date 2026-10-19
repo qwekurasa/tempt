@@ -125,7 +125,7 @@ $('#admin-tabs').onclick = e => {
   if (!t) return;
   $('#products-tab').hidden = t !== 'products';
   $('#forum-tab').hidden = t !== 'forum';
-  if (t === 'forum') loadPosts();
+  if (t === 'forum') { loadPosts(); renderPick(); }
   $('#rates').hidden = t !== 'settings';
   $('#admin-tabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
 };
@@ -230,6 +230,7 @@ function renderPosts() {
     </div>`).join('') || '<p class="mute" style="padding:16px 0">Постов пока нет</p>';
 }
 function resetPost() {
+  pick = new Set(); $('#pick-search').value = ''; renderPick();
   pf.reset();
   pf.id.value = '';
   $('#post-title').textContent = 'Новый пост';
@@ -237,13 +238,16 @@ function resetPost() {
   $('#post-cancel').hidden = $('#post-img-note').hidden = true;
   $('#post-err').textContent = '';
 }
-function skusToIds(v) {
-  const want = v.split(/[\s,]+/).filter(Boolean).map(x => x.toUpperCase());
-  const miss = want.filter(s => !products.some(p => (p.sku || '').toUpperCase() === s));
-  if (miss.length) throw new Error('Нет товаров с артикулом: ' + miss.join(', '));
-  return want.map(s => products.find(p => (p.sku || '').toUpperCase() === s).id);
+let pick = new Set();
+function renderPick() {
+  const q = $('#pick-search').value.trim().toLowerCase();
+  const list = products.filter(p => pick.has(p.id) || !q || [p.sku, p.name, p.brand].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => pick.has(b.id) - pick.has(a.id)).slice(0, 60);
+  $('#pick').innerHTML = list.map(p => `<label class="pick-row"><input type="checkbox" value="${esc(p.id)}"${pick.has(p.id) ? ' checked' : ''}><span class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</span><span>${esc(p.sku || '')} · ${esc(p.name)}</span></label>`).join('') || '<p class="mute">Ничего не найдено</p>';
+  $('#pick-count').textContent = pick.size;
 }
-const idsToSkus = ids => (ids || []).map(id => products.find(p => p.id === id)?.sku).filter(Boolean).join(', ');
+$('#pick-search').oninput = renderPick;
+$('#pick').onchange = e => { e.target.checked ? pick.add(e.target.value) : pick.delete(e.target.value); $('#pick-count').textContent = pick.size; };
 pf.onsubmit = async e => {
   e.preventDefault();
   const id = pf.id.value, btn = $('#post-submit'), label = btn.textContent;
@@ -263,7 +267,7 @@ pf.onsubmit = async e => {
     const saved = await api(id ? '/api/posts/' + encodeURIComponent(id) : '/api/posts', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: pf.title.value, tag: pf.tag.value, text: pf.text.value, images, products: skusToIds(pf.skus.value) }),
+      body: JSON.stringify({ title: pf.title.value, tag: pf.tag.value, text: pf.text.value, images, products: [...pick] }),
     });
     const i = posts.findIndex(p => p.id === saved.id);
     i >= 0 ? (posts[i] = saved) : posts.unshift(saved);
@@ -281,7 +285,7 @@ $('#post-list').onclick = async e => {
   const { pedit, pdel } = e.target.dataset;
   if (pedit) {
     const p = posts.find(x => x.id === pedit);
-    pf.id.value = p.id; pf.title.value = p.title; pf.tag.value = p.tag || ''; pf.text.value = p.text; pf.skus.value = idsToSkus(p.products); pf.images.value = '';
+    pf.id.value = p.id; pf.title.value = p.title; pf.tag.value = p.tag || ''; pf.text.value = p.text; pick = new Set(p.products || []); renderPick(); pf.images.value = '';
     $('#post-title').textContent = 'Редактирование поста';
     $('#post-submit').textContent = 'Сохранить';
     $('#post-cancel').hidden = $('#post-img-note').hidden = false;

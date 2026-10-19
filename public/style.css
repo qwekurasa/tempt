@@ -68,7 +68,7 @@ body:not([data-view=product]) #pback{display:none}
 .post-date{text-align:center;color:var(--text-muted);font-size:11px;margin-bottom:16px}
 .post-imgs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;gap:4px;border-radius:var(--radius)}
 .post-imgs::-webkit-scrollbar{display:none}
-.post-imgs img{flex:0 0 100%;width:100%;aspect-ratio:1;object-fit:cover;scroll-snap-align:center;background:var(--surface);cursor:zoom-in}
+.post-imgs img{flex:0 0 100%;width:100%;aspect-ratio:1;object-fit:cover;scroll-snap-align:center;background:var(--surface);pointer-events:none;-webkit-user-drag:none}
 .post-count{text-align:center;color:var(--text-muted);font-size:10px;margin-top:6px}
 .post-tag{display:inline-block;margin-top:14px;padding:2px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:10px;color:var(--text-muted)}
 .post h2{font-size:14px;font-weight:700;margin:12px 0 0}
@@ -251,8 +251,19 @@ body.co header{display:none}
 }
 html:not([data-theme=dark]) .img img,html:not([data-theme=dark]) .gallery img,html:not([data-theme=dark]) .post-goods img{mix-blend-mode:multiply}
 @media (min-width:801px){
-  header .logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
-  header .tabs{position:absolute;inset:0;justify-content:center;align-items:center;pointer-events:none}
-  header .tabs a{pointer-events:auto}
-  header .tabs a:nth-child(2){margin-right:150px}
+  #top .logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+  #top .tabs{position:absolute;inset:0;justify-content:center;align-items:center;pointer-events:none}
+  #top .tabs a{pointer-events:auto}
+  #top .tabs a:nth-child(2){margin-right:150px}
 }
+.post-goods-title{margin-top:20px;font-size:10px;color:var(--text-muted)}
+.post-goods{display:flex!important;overflow-x:auto;scrollbar-width:none;gap:10px;margin-top:8px}
+.post-goods>a{flex:0 0 132px}
+.gal{width:min(900px,100%)!important;padding:0 16px}
+.gallery{aspect-ratio:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;overflow:visible}
+.gallery img{aspect-ratio:1;height:auto}
+#g-prev,#g-next,#dots{display:none!important}
+.p-back{width:min(900px,100%);padding:16px 16px 0;color:var(--text-muted)}
+.p-back:hover{color:var(--text)}
+@media (min-width:801px){#pback{display:none!important}}
+@media (max-width:800px){.p-back{display:none}.gal{padding:0 12px}.gallery{gap:4px}}

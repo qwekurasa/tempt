@@ -145,7 +145,7 @@ const fmtDate = t => { const d = new Date(t); return `${d.getDate()} ${MONTHS[d.
 const linkify = t => esc(t).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
 const postProducts = ids => {
   const list = (ids || []).map(id => products.find(p => p.id === id)).filter(Boolean);
-  return list.length ? `<div class="post-goods">${list.map(p => `<a href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div>${esc(p.name)}</div><div class="mute">${p.soldOut ? 'Нет в наличии' : rubUsd(p.price)}</div></a>`).join('')}</div>` : '';
+  return list.length ? `<div class="post-goods-title">Вещи из публикации</div><div class="post-goods">${list.map(p => `<a href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div>${esc(p.name)}</div><div class="mute">${p.soldOut ? 'Нет в наличии' : rubUsd(p.price)}</div></a>`).join('')}</div>` : '';
 };
 async function showForum() {
   view('forum');
@@ -165,8 +165,6 @@ async function showForum() {
   </article>`).join('') : '<p class="empty">Постов пока нет</p>';
 }
 $('#posts').onclick = e => {
-  const im = e.target.closest('.post-imgs img');
-  if (im) window.open(im.src, '_blank', 'noopener');
 };
 
 // --- галерея и просмотр фото ---
