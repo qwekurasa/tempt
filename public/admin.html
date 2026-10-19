@@ -45,7 +45,7 @@
 
 <div id="panel" hidden>
   <header class="admin-head">
-    <nav class="tabs" id="admin-tabs"><button data-tab="products" class="on">Товары</button><button data-tab="settings">Настройки</button></nav>
+    <nav class="tabs" id="admin-tabs"><button data-tab="products" class="on">Товары</button><button data-tab="forum">Форум</button><button data-tab="settings">Настройки</button></nav>
     <a class="logo" href="/"><img src="/logo.svg" alt="TEMPT" width="56" height="28"></a>
     <button id="logout">Выйти</button>
   </header>
@@ -68,6 +68,25 @@
     <p class="err" id="rates-err"></p>
     <button class="btn" id="rates-submit">Сохранить настройки</button>
   </form>
+
+  <div class="wrap cols" id="forum-tab" hidden>
+    <form class="form" id="postf">
+      <div id="post-title">Новый пост</div>
+      <input type="hidden" name="id">
+      <label>Заголовок<input name="title" maxlength="160" placeholder="Например: Подборка худи"></label>
+      <label>Метка<input name="tag" maxlength="40" placeholder="Обзор, подборка, новости…"></label>
+      <label>Текст<textarea name="text" rows="8"></textarea></label>
+      <label>Фото (до 10)<input name="images" type="file" accept="image/*" multiple></label>
+      <p class="note" id="post-img-note" hidden>Новые фото заменят текущие. Не выбирайте, чтобы оставить старые.</p>
+      <p class="err" id="post-err"></p>
+      <button class="btn" id="post-submit">Опубликовать</button>
+      <button class="btn ghost" type="button" id="post-cancel" hidden>Отмена</button>
+    </form>
+    <div>
+      <div class="mute" style="margin-bottom:8px">Посты (<span id="post-count">0</span>)</div>
+      <div id="post-list"></div>
+    </div>
+  </div>
 
   <div class="wrap cols" id="products-tab">
     <form class="form" id="pf">

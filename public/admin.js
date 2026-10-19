@@ -133,6 +133,8 @@ $('#admin-tabs').onclick = e => {
   const t = e.target.dataset.tab;
   if (!t) return;
   $('#products-tab').hidden = t !== 'products';
+  $('#forum-tab').hidden = t !== 'forum';
+  if (t === 'forum') loadPosts();
   $('#rates').hidden = t !== 'settings';
   $('#admin-tabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
 };
@@ -214,6 +216,89 @@ $('#list').onclick = async e => {
     } catch (err) {
       products.splice(i, 0, removed);
       renderList();
+      alert('Не удалось удалить: ' + err.message);
+    }
+  }
+};
+
+// --- форум ---
+const pf = $('#postf');
+let posts = [];
+const postDate = t => new Date(t).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+async function loadPosts() {
+  posts = await api('/api/posts?fresh');
+  renderPosts();
+}
+function renderPosts() {
+  $('#post-count').textContent = posts.length;
+  $('#post-list').innerHTML = posts.map(p => `
+    <div class="row">
+      <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
+      <div><div>${esc(p.title || (p.text || '').slice(0, 60) || 'Без текста')}</div><div class="mute">${postDate(p.createdAt)}${p.tag ? ' · ' + esc(p.tag) : ''} · ${p.images.length} фото</div></div>
+      <div class="actions"><button data-pedit="${esc(p.id)}">Изменить</button><button data-pdel="${esc(p.id)}">Удалить</button></div>
+    </div>`).join('') || '<p class="mute" style="padding:16px 0">Постов пока нет</p>';
+}
+function resetPost() {
+  pf.reset();
+  pf.id.value = '';
+  $('#post-title').textContent = 'Новый пост';
+  $('#post-submit').textContent = 'Опубликовать';
+  $('#post-cancel').hidden = $('#post-img-note').hidden = true;
+  $('#post-err').textContent = '';
+}
+pf.onsubmit = async e => {
+  e.preventDefault();
+  const id = pf.id.value, btn = $('#post-submit'), label = btn.textContent;
+  btn.disabled = true;
+  $('#post-err').textContent = '';
+  try {
+    const files = [...pf.images.files].slice(0, 10);
+    let images = id ? posts.find(p => p.id === id).images : [];
+    if (files.length) {
+      images = [];
+      for (const [i, f] of files.entries()) {
+        btn.textContent = `Загрузка фото ${i + 1}/${files.length}`;
+        const blob = await compress(f);
+        images.push((await api('/api/upload', { method: 'POST', headers: { 'Content-Type': blob.type }, body: blob })).url);
+      }
+    }
+    btn.textContent = 'Сохранение…';
+    const saved = await api(id ? '/api/posts/' + encodeURIComponent(id) : '/api/posts', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: pf.title.value, tag: pf.tag.value, text: pf.text.value, images }),
+    });
+    const i = posts.findIndex(p => p.id === saved.id);
+    i >= 0 ? (posts[i] = saved) : posts.unshift(saved);
+    resetPost();
+    renderPosts();
+  } catch (err) {
+    $('#post-err').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent !== 'Опубликовать') btn.textContent = pf.id.value ? 'Сохранить' : 'Опубликовать';
+  }
+};
+$('#post-cancel').onclick = resetPost;
+$('#post-list').onclick = async e => {
+  const { pedit, pdel } = e.target.dataset;
+  if (pedit) {
+    const p = posts.find(x => x.id === pedit);
+    pf.id.value = p.id; pf.title.value = p.title; pf.tag.value = p.tag || ''; pf.text.value = p.text; pf.images.value = '';
+    $('#post-title').textContent = 'Редактирование поста';
+    $('#post-submit').textContent = 'Сохранить';
+    $('#post-cancel').hidden = $('#post-img-note').hidden = false;
+    scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  if (pdel && confirm('Удалить пост?')) {
+    const i = posts.findIndex(x => x.id === pdel);
+    const [removed] = posts.splice(i, 1);
+    renderPosts();
+    try {
+      await api('/api/posts/' + encodeURIComponent(pdel), { method: 'DELETE' });
+    } catch (err) {
+      posts.splice(i, 0, removed);
+      renderPosts();
       alert('Не удалось удалить: ' + err.message);
     }
   }

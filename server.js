@@ -222,6 +222,65 @@ app.delete('/api/products/:id', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- форум: посты с фото и текстом ---
+let memPosts = []; // без Blob (локально, e2e) — в памяти
+async function loadPosts(fresh) {
+  const host = blobHost();
+  if (!host) return structuredClone(memPosts);
+  const r = await fetch(`${host}/posts.json${fresh ? '?t=' + Date.now() : ''}`, { cache: 'no-store' });
+  if (r.status === 404) return [];
+  if (!r.ok) throw new Error('posts: ' + r.status);
+  return r.json();
+}
+const savePosts = items =>
+  !blobHost() ? (memPosts = structuredClone(items)) : put('posts.json', JSON.stringify(items), {
+    access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json', cacheControlMaxAge: 60,
+  });
+function postFields(b) {
+  const p = {
+    title: S(b.title).slice(0, 160),
+    text: S(b.text).slice(0, 8000),
+    tag: S(b.tag).slice(0, 40),
+    images: Array.isArray(b.images) ? b.images.filter(isImage).slice(0, 10) : [],
+  };
+  return p.title || p.text || p.images.length ? p : null;
+}
+
+app.get('/api/posts', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(await loadPosts(isAdmin(req) && 'fresh' in req.query));
+});
+app.post('/api/posts', auth, async (req, res) => {
+  const p = postFields(req.body);
+  if (!p) return res.status(400).json({ error: 'Добавьте текст, заголовок или фото' });
+  const posts = await loadPosts(true);
+  const post = { id: crypto.randomUUID(), ...p, createdAt: Date.now() };
+  posts.unshift(post);
+  await savePosts(posts);
+  res.json(post);
+});
+app.put('/api/posts/:id', auth, async (req, res) => {
+  const posts = await loadPosts(true);
+  const post = posts.find(x => x.id === req.params.id);
+  if (!post) return res.status(404).json({ error: 'Пост не найден' });
+  const p = postFields(req.body);
+  if (!p) return res.status(400).json({ error: 'Добавьте текст, заголовок или фото' });
+  const removed = post.images.filter(u => !p.images.includes(u));
+  Object.assign(post, p, { updatedAt: Date.now() });
+  await savePosts(posts);
+  removeImages(removed);
+  res.json(post);
+});
+app.delete('/api/posts/:id', auth, async (req, res) => {
+  const posts = await loadPosts(true);
+  const i = posts.findIndex(x => x.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: 'Пост не найден' });
+  const [post] = posts.splice(i, 1);
+  await savePosts(posts);
+  removeImages(post.images);
+  res.json({ ok: true });
+});
+
 const SERVICES = { ozon: 'Ozon', yandex: 'Яндекс', cdek: 'СДЭК' };
 
 app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {

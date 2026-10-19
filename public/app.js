@@ -17,7 +17,7 @@ const saveCart = () => store('cart', JSON.stringify(cart));
 
 function view(name) {
   const wasProduct = document.body.dataset.view === 'product';
-  ['home', 'product', 'cartpage', 'about', 'delivery'].forEach(id => ($('#' + id).hidden = id !== name));
+  ['home', 'product', 'cartpage', 'about', 'delivery', 'forum'].forEach(id => ($('#' + id).hidden = id !== name));
   document.querySelectorAll('#tabs a').forEach(a => {
     const on = a.dataset.tab === name;
     a.classList.toggle('on', on);
@@ -137,6 +137,32 @@ function showProduct(id) {
   scrollTo(0, 0);
 }
 
+// --- форум ---
+let posts = null;
+const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const fmtDate = t => { const d = new Date(t); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+const linkify = t => esc(t).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+async function showForum() {
+  view('forum');
+  document.title = 'Форум — TEMPT';
+  scrollTo(0, 0);
+  if (!posts) {
+    $('#posts').innerHTML = '<p class="empty">Загрузка…</p>';
+    posts = await fetch('/api/posts').then(r => r.json()).catch(() => []);
+  }
+  $('#posts').innerHTML = posts.length ? posts.map(p => `<article class="post">
+    <div class="post-date">${fmtDate(p.createdAt)}</div>
+    ${p.images.length ? `<div class="post-imgs" tabindex="0" role="region" aria-label="Фото поста">${p.images.map(img).join('')}</div>${p.images.length > 1 ? `<div class="post-count">${p.images.length} фото · листайте</div>` : ''}` : ''}
+    ${p.tag ? `<span class="post-tag">${esc(p.tag)}</span>` : ''}
+    ${p.title ? `<h2>${esc(p.title)}</h2>` : ''}
+    ${p.text ? `<div class="post-text">${linkify(p.text)}</div>` : ''}
+  </article>`).join('') : '<p class="empty">Постов пока нет</p>';
+}
+$('#posts').onclick = e => {
+  const im = e.target.closest('.post-imgs img');
+  if (im) window.open(im.src, '_blank', 'noopener');
+};
+
 // --- галерея и просмотр фото ---
 const galIndex = () => Math.round($('#gallery').scrollLeft / $('#gallery').clientWidth);
 const galGo = (i, behavior = 'smooth') => $('#gallery').scrollTo({ left: i * $('#gallery').clientWidth, behavior });
@@ -211,6 +237,7 @@ function route() {
   const m = /^#\/p\/(.+)$/.exec(location.hash);
   if (m) return showProduct(decodeURIComponent(m[1]));
   if (location.hash === '#/cart') return showCart();
+  if (location.hash === '#/forum') return showForum();
   if (location.hash === '#/about' || location.hash === '#/delivery') {
     const page = location.hash.slice(2);
     view(page);

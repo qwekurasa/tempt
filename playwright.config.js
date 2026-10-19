@@ -9,7 +9,7 @@ module.exports = defineConfig({
   },
   projects: [
     { name: 'desktop', use: { viewport: { width: 1440, height: 900 } } },
-    { name: 'mobile', use: { viewport: { width: 390, height: 844 } }, testIgnore: /(api|admin-dup|sku)\.spec/ },
+    { name: 'mobile', use: { viewport: { width: 390, height: 844 } }, testIgnore: /(api|admin-dup|sku|forum)\.spec/ },
   ],
   webServer: {
     command: 'node -r ./e2e/mock-telegram.js server.js',
