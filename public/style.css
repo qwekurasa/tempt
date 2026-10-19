@@ -259,7 +259,7 @@ html:not([data-theme=dark]) .img img,html:not([data-theme=dark]) .gallery img,ht
 .post-goods{display:flex!important;overflow-x:auto;scrollbar-width:none;gap:10px;margin-top:8px}
 .post-goods>a{flex:0 0 132px}
 .gal{width:100%!important;padding:0 32px}
-@media (min-width:801px){.pdp{min-height:calc(100vh - var(--h));justify-content:center;padding-bottom:var(--h)}}
+@media (min-width:801px){.pdp{padding-top:min(8vh,80px)}}
 .gallery{aspect-ratio:auto;display:flex;gap:8px;overflow:visible}
 .gallery img{flex:1 1 0;min-width:0;max-width:440px;aspect-ratio:1;height:auto}
 .gallery{justify-content:center}
