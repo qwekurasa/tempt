@@ -127,7 +127,6 @@ function showProduct(id) {
     current.color && 'Цвет: ' + current.color,
     current.sizes.length && 'Размеры: ' + current.sizes.join(', '),
     current.weight && `Примерный вес: ${current.weight} кг`,
-    ship && `Примерная доставка авто до РФ (18–25 дней): ~${rub(q.intl)}`,
   ].filter(x => x !== false && x !== undefined && x !== null).join('\n').trim();
   $('#p-info').hidden = true;
   $('#info-btn').setAttribute('aria-expanded', 'false');
