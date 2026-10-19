@@ -9,15 +9,22 @@ test('F01-H1 каталог показывает все товары', async ({ 
   await a11y(page);
 });
 
-test('NAV вкладки О проекте / Доставка / Подборка', async ({ page }) => {
+test('NAV вкладки О проекте / Доставка / Подборка', async ({ page }, info) => {
+  const mobile = info.project.name === 'mobile';
+  const open = async () => { if (mobile) await page.getByRole('button', { name: 'Меню' }).click(); };
   await page.goto('/');
+  await open();
   await expect(page.getByRole('link', { name: 'Подборка' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('img', { name: 'TEMPT' }).first()).toBeVisible();
   await page.getByRole('link', { name: 'Доставка' }).click();
   await expect(page.getByRole('heading', { name: 'Доставка в Россию и Беларусь' })).toBeVisible();
+  if (mobile) await expect(page.getByRole('link', { name: 'О проекте' })).toBeHidden();
   await expect(page.getByText('Авто быстрое: от 1 кг | 6.2 $/кг')).toBeVisible();
   await a11y(page);
+  await open();
   await page.getByRole('link', { name: 'О проекте' }).click();
   await expect(page.getByRole('heading', { name: 'О проекте' })).toBeVisible();
+  await open();
   await page.getByRole('link', { name: 'Подборка' }).click();
   await expect(page.locator('#grid .item')).toHaveCount(12);
 });
@@ -46,8 +53,8 @@ test('F01-H5 фильтры слева: бренд + размер, сброс', 
 
 test('F01-H6 сортировка по цене', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('combobox').selectOption('asc');
+  await page.getByRole('button', { name: 'Дешевле' }).click();
   await expect(page.locator('#grid .item').first()).toContainText('5 900 ₽');
-  await page.getByRole('combobox').selectOption('desc');
+  await page.getByRole('button', { name: 'Дороже' }).click();
   await expect(page.locator('#grid .item').first()).toContainText('18 900 ₽');
 });

@@ -81,9 +81,14 @@ function showHome() {
 }
 
 // --- товар ---
+let size = null;
 function setBuy(open) {
   $('#buy-closed').hidden = open;
   $('#buy-open').hidden = !open;
+  size = current.sizes.length ? null : '';
+  $('#sizes').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+  $('#buy-title').textContent = current.sizes.length ? 'Выберите размер' : 'Добавить в корзину';
+  $('#add').disabled = size === null;
 }
 
 function addToCart(size) {
@@ -201,6 +206,7 @@ function showCart() {
 }
 
 function route() {
+  setMenu(false);
   if (!$('#lightbox').hidden) { $('#lightbox').hidden = true; document.body.style.overflow = ''; }
   const m = /^#\/p\/(.+)$/.exec(location.hash);
   if (m) return showProduct(decodeURIComponent(m[1]));
@@ -234,10 +240,22 @@ $('#filters-toggle').onclick = () => {
   const open = $('#filters').classList.toggle('shown');
   $('#filters-toggle').setAttribute('aria-expanded', String(open));
 };
-$('#sort').onchange = e => {
-  sort = e.target.value;
+$('#sort').onclick = e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  sort = b.dataset.sort;
+  $('#sort').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   renderGrid();
 };
+// меню на телефоне
+const setMenu = open => {
+  $('#top').classList.toggle('menu-open', open);
+  $('#menu-btn').setAttribute('aria-expanded', String(open));
+};
+$('#menu-btn').onclick = () => setMenu(!$('#top').classList.contains('menu-open'));
+document.addEventListener('click', e => {
+  if (!e.target.closest('#top')) setMenu(false);
+});
 $('#grid').onclick = e => {
   if (e.target.closest('.item')) homeScroll = scrollY;
 };
@@ -274,14 +292,20 @@ document.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight') galGo(galIndex() + 1);
   }
 });
-$('#open').onclick = () => (current.sizes.length ? setBuy(true) : addToCart(''));
+$('#open').onclick = () => setBuy(true);
 $('#close').onclick = () => setBuy(false);
+// выбор размера только отмечает его; в корзину — отдельной кнопкой
 $('#sizes').onclick = e => {
   const b = e.target.closest('button');
   if (!b) return;
-  $('#sizes').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-  $('#buy-title').textContent = 'Добавлено';
-  addToCart(b.dataset.s);
+  size = b.dataset.s;
+  $('#sizes').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  $('#buy-title').textContent = 'Размер ' + size;
+  $('#add').disabled = false;
+};
+$('#add').onclick = () => {
+  if (size === null) return;
+  addToCart(size);
 };
 $('#info-btn').onclick = () => {
   const open = $('#p-info').hidden;

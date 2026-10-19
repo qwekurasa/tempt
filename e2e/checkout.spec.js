@@ -4,6 +4,7 @@ async function addTee(page, size = 'M') {
   await page.goto('/#/p/demo-tee-1');
   await page.getByRole('button', { name: 'Выбрать размер' }).click();
   await page.getByRole('button', { name: size, exact: true }).click();
+  await page.getByRole('button', { name: 'В корзину' }).click();
   await expect(page.locator('#p-status')).toContainText('Добавлено');
 }
 

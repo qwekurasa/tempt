@@ -6,7 +6,11 @@ test('F01-H4 «+» → размер → в корзине', async ({ page }) => 
   await expect(page.locator('#p-name')).toHaveText('TEE 01');
   await expect(page.locator('#p-price')).toHaveText('5 900 ₽');
   await page.getByRole('button', { name: 'Выбрать размер' }).click();
+  await expect(page.getByRole('button', { name: 'В корзину' })).toBeDisabled();
   await page.getByRole('button', { name: 'M', exact: true }).click();
+  await expect(page.locator('#cart-count')).toHaveText('');
+  await expect(page.getByRole('button', { name: 'M', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'В корзину' }).click();
   await expect(page.locator('#p-status')).toContainText('Добавлено · M');
   await expect(page.locator('#cart-count')).toHaveText('1');
   await a11y(page);

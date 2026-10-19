@@ -31,6 +31,7 @@ test('SHIP корзина: по Китаю за каждую вещь, тари�
   await page.goto('/#/p/demo-runner-1');
   await page.getByRole('button', { name: 'Выбрать размер' }).click();
   await page.getByRole('button', { name: '42', exact: true }).click();
+  await page.getByRole('button', { name: 'В корзину' }).click();
   await page.goto('/#/cart');
   await expect(page.locator('#ship-intl')).toHaveText('725 ₽'); // 1.3 кг × 6.2 × 90
   for (let i = 0; i < 7; i++) await page.getByRole('button', { name: '+' }).click();
