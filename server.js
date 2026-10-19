@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const { put, del } = require('@vercel/blob');
+const { waitUntil } = require('@vercel/functions');
 const seed = require('./data/products.json');
 const Shipping = require('./public/shipping.js');
 
@@ -13,10 +14,11 @@ const rub = n => n.toLocaleString('ru-RU') + ' ₽';
 // --- storage (Vercel Blob) ---
 const isBlob = u => /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\//.test(u);
 const isImage = u => typeof u === 'string' && (isBlob(u) || /^\/demo\/[\w-]+\.svg$/.test(u));
+// Удаление фото не задерживает ответ: на Vercel дорабатывает через waitUntil
 const removeImages = urls => {
   if (process.env.LOG_DELETES) console.log('DEL', JSON.stringify(urls));
   const b = urls.filter(isBlob);
-  return b.length && blobHost() ? del(b) : null;
+  if (b.length && blobHost()) waitUntil(del(b).catch(e => console.error('del:', e.message)));
 };
 
 // Каталог читается по прямому URL через CDN (кэш до 60 с); fresh — в обход кэша, для админки и изменений.
@@ -158,24 +160,6 @@ app.post('/api/logout', (req, res) => {
   res.setHeader('Set-Cookie', 'admin=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
   res.json({ ok: true });
 });
-// ВРЕМЕННО: проверка кэша Blob после перезаписи. Удалить после проверки.
-app.get('/api/_cachetest', async (req, res) => {
-  if (req.query.k !== 'tempt-ct-7f3a') return res.sendStatus(404);
-  const host = blobHost();
-  const opt = { access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json', cacheControlMaxAge: 60 };
-  const rd = async q => { const r = await fetch(`${host}/debug/ct.json${q}`, { cache: 'no-store' }); return { body: await r.text(), etag: r.headers.get('etag'), age: r.headers.get('age') }; };
-  const out = {};
-  await put('debug/ct.json', JSON.stringify({ n: 1 }), opt);
-  out.prime = await rd('');
-  out.primeQ = await rd('?t=prime');
-  await put('debug/ct.json', JSON.stringify({ n: 2 }), opt);
-  out.afterPlain = await rd('');
-  out.afterNewQuery = await rd('?t=' + Date.now());
-  out.afterOldQuery = await rd('?t=prime');
-  await del(`${host}/debug/ct.json`);
-  res.json(out);
-});
-
 app.get('/api/me', auth, (req, res) => res.json({ ok: true }));
 
 app.get('/api/settings', async (req, res) => {
@@ -224,7 +208,7 @@ app.put('/api/products/:id', auth, async (req, res) => {
   if (!withSku(items, product, S_SKU(req.body))) return res.status(400).json({ error: 'Такой артикул уже есть' });
   Object.assign(product, p);
   await save(items);
-  await removeImages(removed.filter(u => !items.some(x => x.images.includes(u))));
+  removeImages(removed.filter(u => !items.some(x => x.images.includes(u))));
   res.json(product);
 });
 
@@ -234,7 +218,7 @@ app.delete('/api/products/:id', auth, async (req, res) => {
   if (i < 0) return res.status(404).json({ error: 'Товар не найден' });
   const [product] = items.splice(i, 1);
   await save(items);
-  await removeImages(product.images.filter(u => !items.some(x => x.images.includes(u))));
+  removeImages(product.images.filter(u => !items.some(x => x.images.includes(u))));
   res.json({ ok: true });
 });
 

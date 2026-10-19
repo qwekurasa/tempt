@@ -10,7 +10,7 @@ a,button{color:inherit;font:inherit;letter-spacing:inherit;text-transform:inheri
 .mute{color:var(--text-muted)}
 
 /* шапка */
-header{position:sticky;top:0;z-index:5;height:var(--h);background:var(--bg);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 16px}
+header{position:sticky;top:0;z-index:5;height:var(--h);background:var(--bg);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
 header>:last-child{justify-self:end}
 .logo{font-weight:700;letter-spacing:.24em}
 .top-l{display:flex;align-items:center;gap:14px}
@@ -40,7 +40,7 @@ body:not([data-view=product]) #pback{display:none}
 .item{display:flex;flex-direction:column;align-items:center;text-align:center}
 .item .img{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
 .item img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .3s}
-.item:hover img{transform:scale(1.04)}
+@media (hover:hover){.item:hover img{transform:scale(1.04)}}
 .cap{margin-top:14px}
 .item.out .cap{color:var(--text-muted)}
 .empty{grid-column:1/-1;text-align:center;color:var(--text-muted);padding:80px 0}
@@ -167,3 +167,38 @@ body.co header{display:none}
 }
 .co-sum-col{text-align:right;white-space:nowrap}
 .co-sum-col .mute{font-size:11px;margin-top:4px}
+
+/* ===== адаптив ===== */
+/* широкие экраны: больше колонок и крупнее текст */
+@media (min-width:1400px){.grid{grid-template-columns:repeat(6,1fr)}}
+@media (min-width:1800px){body{font-size:13px}.grid{grid-template-columns:repeat(7,1fr);gap:56px 32px}.layout{grid-template-columns:200px 1fr}.bar{padding-left:256px}}
+@media (min-width:2400px){body{font-size:14px}.grid{grid-template-columns:repeat(8,1fr)}.gal{width:min(760px,62vh)}}
+/* ноутбуки и планшеты в альбомной ориентации */
+@media (min-width:801px) and (max-width:1100px){.grid{grid-template-columns:repeat(4,1fr);gap:40px 16px}.layout{grid-template-columns:150px 1fr;padding:0 24px}.bar{padding:16px 24px 0 198px}}
+/* маленькие телефоны: 2 колонки */
+@media (max-width:480px){.grid{grid-template-columns:repeat(2,1fr);gap:32px 12px}.cap{font-size:11px}.bar{flex-wrap:wrap;row-gap:0}#count{order:3;width:100%;white-space:nowrap}}
+@media (max-width:360px){header{gap:8px}.tabs{gap:14px}.bar{gap:10px}.bar .sort{gap:4px}}
+
+/* сенсорные экраны: зоны нажатия не меньше 40–44px, без зума iOS в полях */
+@media (pointer:coarse),(max-width:800px){
+  .tabs a,.home-link,.logo,.bag{display:inline-flex;align-items:center;min-height:40px}
+  .tabs a{padding:0 4px}
+  .bag{min-width:40px;justify-content:flex-end}
+  .icon-btn{width:40px;height:40px}
+  #filters-toggle,.sort,.link,.f-head button{min-height:40px;display:inline-flex;align-items:center}
+  .f-group label{padding:8px 0}
+  .f-group input{width:18px;height:18px}
+  .sizes{gap:6px 10px}
+  .sizes button{min-width:44px;min-height:44px}
+  .plus{width:44px;height:44px}
+  .buy-head button{width:44px;height:44px}
+  .qty button{width:36px;height:36px}
+  .co-back{width:44px;height:44px;display:inline-flex;align-items:center}
+  .co-consent input{width:22px;height:22px;flex:none}
+  .sort select{min-height:40px}
+  .co-consent{font-size:12px}
+  .co-link,.foot a{display:inline-flex;align-items:center;min-height:40px}
+  .lb-close{width:48px;height:48px}
+  .co-form input:not([type=radio]):not([type=checkbox]),.co-form textarea,.form input,.form textarea,.form select,.sort select{font-size:16px}
+}
+.checkout{padding-bottom:env(safe-area-inset-bottom)}

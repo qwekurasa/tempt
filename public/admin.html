@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>TEMPT — Админ</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -21,7 +21,18 @@
   .tabs button.on{color:var(--text)}
   .admin-head{display:flex;justify-content:space-between;align-items:center;height:48px;padding:0 16px}
   .admin-head .tabs{gap:20px;padding:0}
-  @media (max-width:800px){.cols{grid-template-columns:1fr}.admin-head .logo{display:none}.wrap{padding:16px}}
+  .row.flash{animation:flash 2.4s ease-out}
+  @keyframes flash{from{background:#efeee9}to{background:transparent}}
+  .cols>*{min-width:0}
+  .form input,.form textarea,.form select{width:100%;min-width:0}
+  .form label:has(> input[type=checkbox]) input{width:20px;height:20px;flex:none}
+  @media (max-width:800px){
+    .cols{grid-template-columns:1fr}.admin-head .logo{display:none}.wrap{padding:16px}
+    .g2{grid-template-columns:1fr}
+    .row{grid-template-columns:56px 1fr}
+    .row .actions{grid-column:1/-1;flex-wrap:wrap;gap:4px 20px}
+    .actions button,.admin-head button{min-height:40px}
+  }
 </style>
 </head>
 <body>

@@ -23,16 +23,21 @@ async function showPanel() {
   const [list, rates] = await Promise.all([api('/api/products?fresh'), api('/api/settings?fresh')]);
   products = list;
   for (const [k, v] of Object.entries(rates)) if ($('#rates')[k]) $('#rates')[k].value = v || '';
-  $('#count').textContent = products.length;
-  $('#brand-list').innerHTML = [...new Set(products.map(p => p.brand))].map(b => `<option value="${esc(b)}">`).join('');
   renderList();
 }
 
+let flashId = null;
 function renderList() {
+  $('#count').textContent = products.length;
+  $('#brand-list').innerHTML = [...new Set(products.map(p => p.brand))].map(b => `<option value="${esc(b)}">`).join('');
+  renderRows();
+}
+
+function renderRows() {
   const q = $('#search').value.trim().toUpperCase();
   const list = q ? products.filter(p => [p.sku, p.name, p.brand].some(v => (v || '').toUpperCase().includes(q))) : products;
   $('#list').innerHTML = list.length ? list.map(p => `
-    <div class="row">
+    <div class="row${p.id === flashId ? ' flash' : ''}" data-row="${esc(p.id)}">
       <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
       <div><div>${p.sku ? `<span class="mute">${esc(p.sku)}</span> · ` : ''}${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
       <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-dup="${esc(p.id)}">Дублировать</button><button data-del="${esc(p.id)}">Удалить</button></div>
@@ -101,13 +106,16 @@ form.onsubmit = async e => {
     }
     btn.textContent = 'Сохранение…';
     const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
-    await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
+    const saved = await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     resetForm();
-    showPanel();
+    const i = products.findIndex(p => p.id === saved.id);
+    i >= 0 ? (products[i] = saved) : products.unshift(saved);
+    flashId = saved.id;
+    renderList();
   } catch (err) {
     $('#pf-err').textContent = err.message;
     btn.textContent = label;
@@ -117,7 +125,7 @@ form.onsubmit = async e => {
 };
 
 $('#pf-cancel').onclick = resetForm;
-$('#search').oninput = renderList;
+$('#search').oninput = renderRows;
 
 $('#cat-select').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<option value="${k}"${k === 'm' ? ' selected' : ''}>${esc(l)}</option>`).join('');
 $('#cat-fees').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<label>${esc(l)}<input name="cat_${k}" type="number" min="0.01" step="0.01" required></label>`).join('');
@@ -147,50 +155,66 @@ $('#rates').onsubmit = async e => {
 };
 
 
+function fillForm(p) {
+  form.id.value = p.id;
+  form.name.value = p.name;
+  form.brand.value = p.brand;
+  form.color.value = p.color || '';
+  form.sku.value = p.sku || '';
+  form.weight.value = p.weight || '';
+  form.cat.value = Shipping.cat(p.cat);
+  form.eta.value = p.eta || '';
+  form.soldOut.checked = !!p.soldOut;
+  form.price.value = p.price;
+  form.sizes.value = p.sizes.join(', ');
+  form.description.value = p.description;
+  form.images.value = '';
+  form.images.required = false;
+  $('#pf-submit').textContent = 'Сохранить';
+  $('#pf-cancel').hidden = $('#img-note').hidden = false;
+  $('#pf-err').textContent = '';
+  scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 $('#list').onclick = async e => {
-  const edit = e.target.dataset.edit, del = e.target.dataset.del, dup = e.target.dataset.dup;
+  const { edit, del, dup } = e.target.dataset;
+  if (edit) {
+    fillForm(products.find(x => x.id === edit));
+    $('#pf-title').textContent = 'Редактирование';
+  }
   if (dup) {
     const p = products.find(x => x.id === dup);
     e.target.disabled = true;
+    e.target.textContent = 'Копирую…';
     try {
-      await api('/api/products', {
+      const copy = await api('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...p, sku: '', sizes: p.sizes.join(', ') }),
       });
-      showPanel();
+      products.unshift(copy);
+      flashId = copy.id;
+      renderList();
+      fillForm(copy);
+      $('#pf-title').textContent = `Копия создана · ${copy.sku} — можно изменить`;
     } catch (err) {
       alert(err.message);
       e.target.disabled = false;
+      e.target.textContent = 'Дублировать';
     }
   }
-  if (edit) {
-    const p = products.find(x => x.id === edit);
-    form.id.value = p.id;
-    form.name.value = p.name;
-    form.brand.value = p.brand;
-    form.color.value = p.color || '';
-    form.sku.value = p.sku || '';
-    form.weight.value = p.weight || '';
-    form.cat.value = Shipping.cat(p.cat);
-    form.eta.value = p.eta || '';
-    form.soldOut.checked = !!p.soldOut;
-    form.price.value = p.price;
-    form.sizes.value = p.sizes.join(', ');
-    form.description.value = p.description;
-    form.images.value = '';
-    form.images.required = false;
-    $('#pf-title').textContent = 'Редактирование';
-    $('#pf-submit').textContent = 'Сохранить';
-    $('#pf-cancel').hidden = $('#img-note').hidden = false;
-    scrollTo({ top: 0, behavior: 'smooth' });
-  }
   if (del && confirm('Удалить товар?')) {
+    // сразу убираем из списка; при ошибке возвращаем
+    const i = products.findIndex(x => x.id === del);
+    const [removed] = products.splice(i, 1);
+    renderList();
+    if (form.id.value === del) resetForm();
     try {
       await api('/api/products/' + encodeURIComponent(del), { method: 'DELETE' });
-      showPanel();
     } catch (err) {
-      alert(err.message);
+      products.splice(i, 0, removed);
+      renderList();
+      alert('Не удалось удалить: ' + err.message);
     }
   }
 };

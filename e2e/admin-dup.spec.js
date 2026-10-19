@@ -16,6 +16,8 @@ test.describe('ADM дубликат', () => {
     await expect(rows).toHaveCount(1);
     await rows.getByRole('button', { name: 'Дублировать' }).click();
     await expect(rows).toHaveCount(2);
+    await expect(page.locator('#pf-title')).toContainText('Копия создана');
+    await expect(page.locator('[name=name]')).toHaveValue('DUP TEST');
 
     const list = (await (await request.get('/api/products')).json()).filter(p => p.name === 'DUP TEST');
     const copy = list.find(p => p.id !== orig.id);
@@ -24,4 +26,23 @@ test.describe('ADM дубликат', () => {
     expect((await request.delete('/api/products/' + orig.id)).status()).toBe(200);
     expect((await request.delete('/api/products/' + copy.id)).status()).toBe(200);
   });
+});
+
+test('ADM-H3 удаление убирает строку сразу, без перезагрузки списка', async ({ page, request }) => {
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  await request.post('/api/products', { data: { name: 'DEL FAST', brand: 'X', price: 1, images: ['/demo/tee.svg'] } });
+  await page.goto('/admin');
+  await page.getByLabel('Пароль').fill('e2e-pass');
+  await page.getByRole('button', { name: 'Войти' }).click();
+  const row = page.locator('.row').filter({ hasText: 'DEL FAST' });
+  await expect(row).toHaveCount(1);
+  let reloads = 0;
+  page.on('request', r => r.url().includes('/api/products?fresh') && reloads++);
+  page.once('dialog', d => d.accept());
+  await row.getByRole('button', { name: 'Удалить' }).click();
+  await expect(row).toHaveCount(0, { timeout: 300 });
+  await page.waitForTimeout(500);
+  expect(reloads).toBe(0);
+  const left = (await (await request.get('/api/products')).json()).filter(p => p.name === 'DEL FAST');
+  expect(left).toHaveLength(0);
 });
