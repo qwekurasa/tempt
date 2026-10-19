@@ -250,8 +250,6 @@ body.co header{display:none}
   .f-group label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
 }
 html:not([data-theme=dark]) .img img,html:not([data-theme=dark]) .gallery img,html:not([data-theme=dark]) .post-goods img{mix-blend-mode:multiply}
-html[data-theme=dark] .item .img,html[data-theme=dark] .gallery,html[data-theme=dark] .post-goods .img,html[data-theme=dark] .post-imgs{background:#4d4d4d}
-html[data-theme=dark] .item .img img,html[data-theme=dark] .gallery img,html[data-theme=dark] .post-goods img,html[data-theme=dark] .post-imgs img{mix-blend-mode:multiply}
 @media (min-width:801px){
   header .logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
   header .tabs{position:absolute;inset:0;justify-content:center;align-items:center;pointer-events:none}
