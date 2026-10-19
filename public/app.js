@@ -5,7 +5,8 @@ const img = src => (src ? `<img src="${esc(src)}" alt="" loading="lazy">` : '');
 const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch {} };
 
 let products = [];
-let brand = '';
+const sel = { brand: new Set(), color: new Set(), size: new Set() };
+let sort = 'new';
 let current = null;
 let homeScroll = 0;
 let dense = store('dense') !== '0';
@@ -23,27 +24,53 @@ function view(name) {
 }
 
 // --- каталог ---
+const uniq = arr => [...new Set(arr.filter(Boolean))];
+const GROUPS = [
+  ['brand', 'Бренды', () => uniq(products.map(p => p.brand)).sort()],
+  ['color', 'Цвет', () => uniq(products.map(p => p.color)).sort()],
+  ['size', 'Размер', () => uniq(products.flatMap(p => p.sizes))],
+];
+const oneBrand = () => (sel.brand.size === 1 ? [...sel.brand][0] : '');
+
 function renderBrands() {
-  const list = [...new Set(products.map(p => p.brand))].sort();
-  $('#brands').innerHTML = ['', ...list]
-    .map(b => `<a href="${b ? '#/b/' + encodeURIComponent(b) : '#/'}"${b === brand ? ' class="on" aria-current="page"' : ''}>${esc(b || 'Все')}</a>`)
-    .join('');
+  const cur = oneBrand();
+  $('#brands').innerHTML = `<a href="#/" data-all${sel.brand.size ? '' : ' class="on" aria-current="page"'}>Все</a>` +
+    GROUPS[0][2]().map(b => `<a href="#/b/${encodeURIComponent(b)}"${b === cur ? ' class="on" aria-current="page"' : ''}>${esc(b)}</a>`).join('');
+}
+
+function renderFilters() {
+  $('#filters').innerHTML = '<div class="f-head"><span>Фильтры</span><button id="clear">Сбросить</button></div>' +
+    GROUPS.map(([key, title, values]) => {
+      const vals = values();
+      return vals.length
+        ? `<div class="f-group"><h4>${title}</h4>${vals.map(v => `<label><input type="checkbox" data-g="${key}" value="${esc(v)}"${sel[key].has(v) ? ' checked' : ''}>${esc(v)}</label>`).join('')}</div>`
+        : '';
+    }).join('');
 }
 
 function renderGrid() {
-  const list = brand ? products.filter(p => p.brand === brand) : products;
+  const match = (key, v) => !sel[key].size || [].concat(v).some(x => sel[key].has(x));
+  const list = products.filter(p => match('brand', p.brand) && match('color', p.color || '') && match('size', p.sizes));
+  if (sort !== 'new') list.sort((a, b) => (sort === 'asc' ? a.price - b.price : b.price - a.price));
+  const n = list.length;
+  $('#count').textContent = `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'товар' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'товара' : 'товаров'}`;
   $('#grid').classList.toggle('large', !dense);
   $('#density').textContent = dense ? '+' : '−';
-  $('#grid').innerHTML = list.length
-    ? list.map(p => `<a class="item${p.soldOut ? ' out' : ''}" href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div class="cap">${esc(p.name)}${p.soldOut ? '<br>Нет в наличии' : ''}</div></a>`).join('')
+  $('#grid').innerHTML = n
+    ? list.map(p => `<a class="item${p.soldOut ? ' out' : ''}" href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div class="cap">${esc(p.name)}<br>${p.soldOut ? 'Нет в наличии' : rub(p.price)}</div></a>`).join('')
     : '<p class="empty">Ничего не найдено</p>';
+}
+
+function refresh() {
+  renderBrands();
+  renderFilters();
+  renderGrid();
 }
 
 function showHome() {
   const fromProduct = view('home');
-  document.title = brand ? `${brand} — TEMPT` : 'TEMPT';
-  renderBrands();
-  renderGrid();
+  document.title = oneBrand() ? `${oneBrand()} — TEMPT` : 'TEMPT';
+  refresh();
   scrollTo(0, fromProduct ? homeScroll : 0);
 }
 
@@ -119,7 +146,7 @@ function route() {
   if (m) return showProduct(decodeURIComponent(m[1]));
   if (location.hash === '#/cart') return showCart();
   const b = /^#\/b\/(.+)$/.exec(location.hash);
-  brand = b && products.some(p => p.brand === decodeURIComponent(b[1])) ? decodeURIComponent(b[1]) : '';
+  if (b) sel.brand = new Set([decodeURIComponent(b[1])]);
   showHome();
 }
 
@@ -127,6 +154,32 @@ function route() {
 $('#density').onclick = () => {
   dense = !dense;
   store('dense', dense ? '1' : '0');
+  renderGrid();
+};
+$('#brands').onclick = e => {
+  if (!e.target.closest('[data-all]')) return;
+  sel.brand.clear();
+  if (location.hash === '#/' || location.hash === '') { e.preventDefault(); refresh(); }
+};
+$('#filters').onchange = e => {
+  const { g } = e.target.dataset;
+  e.target.checked ? sel[g].add(e.target.value) : sel[g].delete(e.target.value);
+  if (location.hash.startsWith('#/b/')) history.replaceState(null, '', '#/');
+  renderBrands();
+  renderGrid();
+};
+$('#filters').onclick = e => {
+  if (e.target.id !== 'clear') return;
+  Object.values(sel).forEach(s => s.clear());
+  if (location.hash.startsWith('#/b/')) history.replaceState(null, '', '#/');
+  refresh();
+};
+$('#filters-toggle').onclick = () => {
+  const open = $('#filters').classList.toggle('shown');
+  $('#filters-toggle').setAttribute('aria-expanded', String(open));
+};
+$('#sort').onchange = e => {
+  sort = e.target.value;
   renderGrid();
 };
 $('#grid').onclick = e => {

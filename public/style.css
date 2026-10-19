@@ -25,8 +25,20 @@ body[data-view=product] #density{display:none}
 .home-link{font-size:12px}
 
 /* каталог */
-.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:48px 24px;padding:32px 32px 96px}
-.grid.large{grid-template-columns:repeat(3,1fr);gap:72px 40px;padding:32px 64px 96px}
+.bar{display:flex;align-items:center;gap:24px;padding:16px 32px 0 228px}
+.bar .sort{margin-left:auto;display:flex;align-items:center;gap:8px}
+.sort select{border:0;background:none;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer}
+#filters-toggle{display:none}
+.layout{display:grid;grid-template-columns:172px 1fr;gap:24px;padding:0 32px 0 32px;align-items:start}
+.filters{position:sticky;top:calc(var(--h) + 24px);padding-top:32px;font-size:11px}
+.f-head{display:flex;justify-content:space-between;margin-bottom:20px}
+.f-head button{color:var(--text-muted);text-decoration:underline;text-underline-offset:3px}
+.f-group{margin-bottom:20px}
+.f-group h4{font-weight:700;font-size:11px;margin-bottom:8px}
+.f-group label{display:flex;align-items:center;gap:8px;padding:2px 0;cursor:pointer}
+.f-group input{width:12px;height:12px;accent-color:var(--accent);cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:48px 24px;padding:32px 0 96px}
+.grid.large{grid-template-columns:repeat(3,1fr);gap:72px 40px}
 .item{display:flex;flex-direction:column;align-items:center;text-align:center}
 .item .img{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
 .item img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .3s}
@@ -114,8 +126,13 @@ body.co header{display:none}
   .brands{grid-column:1/-1;grid-row:2;max-width:100%;justify-content:safe center;gap:16px;padding:0 0 10px}
   header>.bag{grid-column:3;grid-row:1}
   body[data-view=product] .brands{display:none}
-  .grid{grid-template-columns:repeat(3,1fr);gap:28px 12px;padding:16px 12px 64px}
-  .grid.large{grid-template-columns:repeat(2,1fr);gap:40px 16px;padding:16px 16px 64px}
+  .bar{padding:12px 12px 0;gap:16px}
+  #filters-toggle{display:block}
+  .layout{grid-template-columns:1fr;padding:0 12px;gap:0}
+  .filters{display:none;position:static;padding-top:16px}
+  .filters.shown{display:block}
+  .grid{grid-template-columns:repeat(3,1fr);gap:28px 12px;padding:16px 0 64px}
+  .grid.large{grid-template-columns:repeat(2,1fr);gap:40px 16px}
   .cap{font-size:10px;margin-top:8px}
   .gallery{height:56vh}
   .co-grid{grid-template-columns:1fr;gap:40px}

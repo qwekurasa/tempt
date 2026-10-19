@@ -19,7 +19,21 @@
 </header>
 
 <main id="home">
-  <div class="grid" id="grid"></div>
+  <div class="bar">
+    <button class="link" id="filters-toggle" aria-expanded="false" aria-controls="filters">Фильтры</button>
+    <span class="mute" id="count"></span>
+    <label class="sort">Сортировка
+      <select id="sort">
+        <option value="new">Новые</option>
+        <option value="asc">Дешевле</option>
+        <option value="desc">Дороже</option>
+      </select>
+    </label>
+  </div>
+  <div class="layout">
+    <aside class="filters" id="filters" aria-label="Фильтры"></aside>
+    <div class="grid" id="grid"></div>
+  </div>
   <footer class="foot"><span>© TEMPT</span><a href="/privacy.html">Политика конфиденциальности</a></footer>
 </main>
 
