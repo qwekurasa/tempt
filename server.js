@@ -30,6 +30,21 @@ async function load(fresh) {
   if (!r.ok) throw new Error('products: ' + r.status);
   return r.json();
 }
+// Курсы и тарифы доставки. Тарифы — как на странице «Доставка», курсы меняются в админке.
+const SETTINGS_DEFAULT = { cny: 0, usd: 0, auto1: 6.2, auto10: 4.5, air: 27, chinaFeeMin: 10, chinaFeeMax: 15 };
+let memSettings = { ...SETTINGS_DEFAULT }; // без Blob (локально) — в памяти
+async function loadSettings(fresh) {
+  const host = blobHost();
+  if (!host) return memSettings;
+  const r = await fetch(`${host}/settings.json${fresh ? '?t=' + Date.now() : ''}`, { cache: 'no-store' });
+  return { ...SETTINGS_DEFAULT, ...(r.ok ? await r.json() : {}) };
+}
+async function saveSettings(v) {
+  if (!blobHost()) return (memSettings = v);
+  await put('settings.json', JSON.stringify(v), { access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json', cacheControlMaxAge: 60 });
+  return v;
+}
+
 const save = items =>
   put('products.json', JSON.stringify(items), {
     access: 'public',
@@ -146,6 +161,7 @@ function productFields(b) {
     name: S(b.name).slice(0, 120),
     brand: S(b.brand).toUpperCase().slice(0, 60),
     color: S(b.color).toUpperCase().slice(0, 60),
+    weight: Math.min(Math.max(Math.round(Number(b.weight) * 100) / 100 || 0, 0), 100),
     price: Math.round(Number(b.price)),
     sizes: S(b.sizes).split(',').map(s => s.trim().slice(0, 20)).filter(Boolean).slice(0, 30),
     description: S(b.description).slice(0, 5000),
@@ -183,6 +199,17 @@ app.post('/api/logout', (req, res) => {
   res.json({ ok: true });
 });
 app.get('/api/me', auth, (req, res) => res.json({ ok: true }));
+
+app.get('/api/settings', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(await loadSettings(isAdmin(req) && 'fresh' in req.query));
+});
+app.put('/api/settings', auth, async (req, res) => {
+  const rate = v => Math.round(Number(v) * 10000) / 10000;
+  const cny = rate(req.body.cny), usd = rate(req.body.usd);
+  if (!(cny > 0 && cny < 1000 && usd > 0 && usd < 10000)) return res.status(400).json({ error: 'Укажите курсы юаня и доллара' });
+  res.json(await saveSettings({ ...(await loadSettings(true)), cny, usd }));
+});
 
 app.post('/api/upload', auth, express.raw({ type: Object.keys(EXT), limit: '4mb' }), async (req, res) => {
   const type = req.headers['content-type'];
@@ -243,6 +270,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
   const items = Array.isArray(b.items) ? b.items.slice(0, 50) : [];
   const lines = [];
   let total = 0;
+  let weight = 0;
   for (const it of items) {
     const p = products.find(x => x.id === it.id);
     const qty = Math.floor(Number(it.qty));
@@ -252,6 +280,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     }
     if (p.soldOut) return res.status(400).json({ error: `Товар закончился: ${p.name}` });
     total += p.price * qty;
+    weight += (p.weight || 0) * qty;
     lines.push(`${lines.length + 1}. ${p.brand} — ${p.name}${size ? ' · ' + size : ''} × ${qty} = ${rub(p.price * qty)}${p.eta ? `, срок ${p.eta}` : ''}`);
   }
   if (!lines.length) return res.status(400).json({ error: 'Корзина пуста' });
@@ -264,6 +293,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     ...lines,
     '',
     `Итого: ${rub(total)}`,
+    ...(weight ? [`Вес ≈ ${Math.round(weight * 10) / 10} кг`] : []),
     '',
     `ФИО: ${name}`,
     `Telegram: @${nick}`,

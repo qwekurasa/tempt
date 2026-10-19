@@ -20,13 +20,16 @@ function showLogin() {
 async function showPanel() {
   $('#login').hidden = true;
   $('#panel').hidden = false;
-  products = await api('/api/products?fresh');
+  const [list, rates] = await Promise.all([api('/api/products?fresh'), api('/api/settings?fresh')]);
+  products = list;
+  $('#rates').cny.value = rates.cny || '';
+  $('#rates').usd.value = rates.usd || '';
   $('#count').textContent = products.length;
   $('#brand-list').innerHTML = [...new Set(products.map(p => p.brand))].map(b => `<option value="${esc(b)}">`).join('');
   $('#list').innerHTML = products.map(p => `
     <div class="row">
       <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
-      <div><div>${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
+      <div><div>${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
       <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-del="${esc(p.id)}">Удалить</button></div>
     </div>`).join('');
 }
@@ -89,7 +92,7 @@ form.onsubmit = async e => {
       }
     }
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, color: form.color.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
     await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,6 +109,22 @@ form.onsubmit = async e => {
 };
 
 $('#pf-cancel').onclick = resetForm;
+
+$('#rates').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target;
+  $('#rates-err').textContent = '';
+  $('#rates-submit').disabled = true;
+  try {
+    await api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cny: f.cny.value, usd: f.usd.value }) });
+    $('#rates-submit').textContent = 'Сохранено ✓';
+    setTimeout(() => ($('#rates-submit').textContent = 'Сохранить курсы'), 1500);
+  } catch (err) {
+    $('#rates-err').textContent = err.message;
+  } finally {
+    $('#rates-submit').disabled = false;
+  }
+};
 
 $('#bot-setup').onclick = async () => {
   try {
@@ -124,6 +143,7 @@ $('#list').onclick = async e => {
     form.name.value = p.name;
     form.brand.value = p.brand;
     form.color.value = p.color || '';
+    form.weight.value = p.weight || '';
     form.eta.value = p.eta || '';
     form.soldOut.checked = !!p.soldOut;
     form.price.value = p.price;

@@ -9,7 +9,7 @@ const sel = { brand: new Set(), color: new Set(), size: new Set() };
 let sort = 'new';
 let current = null;
 let homeScroll = 0;
-let dense = store('dense') !== '0';
+let settings = {};
 let cart = [];
 try { cart = JSON.parse(store('cart')) || []; } catch {}
 
@@ -17,7 +17,12 @@ const saveCart = () => store('cart', JSON.stringify(cart));
 
 function view(name) {
   const wasProduct = document.body.dataset.view === 'product';
-  ['home', 'product', 'cartpage'].forEach(id => ($('#' + id).hidden = id !== name));
+  ['home', 'product', 'cartpage', 'about', 'delivery'].forEach(id => ($('#' + id).hidden = id !== name));
+  document.querySelectorAll('#tabs a').forEach(a => {
+    const on = a.dataset.tab === name;
+    a.classList.toggle('on', on);
+    on ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
+  });
   document.body.dataset.view = name;
   document.body.classList.toggle('co', name === 'cartpage');
   return wasProduct;
@@ -32,10 +37,26 @@ const GROUPS = [
 ];
 const oneBrand = () => (sel.brand.size === 1 ? [...sel.brand][0] : '');
 
-function renderBrands() {
-  const cur = oneBrand();
-  $('#brands').innerHTML = `<a href="#/" data-all${sel.brand.size ? '' : ' class="on" aria-current="page"'}>Все</a>` +
-    GROUPS[0][2]().map(b => `<a href="#/b/${encodeURIComponent(b)}"${b === cur ? ' class="on" aria-current="page"' : ''}>${esc(b)}</a>`).join('');
+// --- доставка ---
+const round10 = n => Math.round(n / 10) * 10;
+const range = ([a, b]) => `~${round10(a).toLocaleString('ru-RU')}–${rub(round10(b))}`;
+
+// Примерная доставка до РФ: вес (не меньше 1 кг) × тариф $/кг × курс $ + сбор по Китаю (¥ за позицию)
+function shipEstimate(kg, positions = 1) {
+  const s = settings;
+  if (!kg || !s.cny || !s.usd) return null;
+  const w = Math.max(kg, 1);
+  const fee = [s.chinaFeeMin * s.cny * positions, s.chinaFeeMax * s.cny * positions];
+  const auto = w * (w >= 10 ? s.auto10 : s.auto1) * s.usd;
+  const air = w * s.air * s.usd;
+  return { auto: [auto + fee[0], auto + fee[1]], air: [air + fee[0], air + fee[1]] };
+}
+
+function renderDelivery() {
+  document.querySelectorAll('#delivery [data-s]').forEach(el => (el.textContent = settings[el.dataset.s] ?? '—'));
+  $('#rates').textContent = settings.cny && settings.usd
+    ? `Курс: 1 ¥ = ${settings.cny} ₽ · 1 $ = ${settings.usd} ₽`
+    : 'Курс уточняйте в Telegram';
 }
 
 function renderFilters() {
@@ -54,15 +75,12 @@ function renderGrid() {
   if (sort !== 'new') list.sort((a, b) => (sort === 'asc' ? a.price - b.price : b.price - a.price));
   const n = list.length;
   $('#count').textContent = `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'товар' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'товара' : 'товаров'}`;
-  $('#grid').classList.toggle('large', !dense);
-  $('#density').textContent = dense ? '+' : '−';
   $('#grid').innerHTML = n
     ? list.map(p => `<a class="item${p.soldOut ? ' out' : ''}" href="#/p/${encodeURIComponent(p.id)}"><div class="img">${img(p.images[0])}</div><div class="cap">${esc(p.name)}<br>${p.soldOut ? 'Нет в наличии' : rub(p.price)}</div></a>`).join('')
     : '<p class="empty">Ничего не найдено</p>';
 }
 
 function refresh() {
-  renderBrands();
   renderFilters();
   renderGrid();
 }
@@ -99,7 +117,10 @@ function showProduct(id) {
   $('#p-name').textContent = current.name;
   $('#p-price').textContent = $('#p-price2').textContent = rub(current.price);
   $('#open').hidden = !!current.soldOut;
-  $('#p-status').textContent = current.soldOut ? 'Нет в наличии' : current.eta ? `Срок доставки: ${current.eta}` : '';
+  const ship = shipEstimate(current.weight);
+  $('#p-status').textContent = current.soldOut
+    ? 'Нет в наличии'
+    : ship ? `Доставка до РФ: авто ${range(ship.auto)} · самолёт ${range(ship.air)}` : current.eta ? `Срок доставки: ${current.eta}` : '';
   $('#sizes').innerHTML = current.sizes.map(s => `<button data-s="${esc(s)}">${esc(s)}</button>`).join('');
   $('#buy-title').textContent = 'Выберите размер';
   $('#p-info').textContent = [
@@ -109,7 +130,9 @@ function showProduct(id) {
     current.color && 'Цвет: ' + current.color,
     current.sizes.length && 'Размеры: ' + current.sizes.join(', '),
     current.eta && 'Срок доставки: ' + current.eta,
-    'Доставка до пункта выдачи Ozon, Яндекс или СДЭК. Статус заказа пришлём в Telegram.',
+    current.weight && `Примерный вес: ${current.weight} кг`,
+    ship && `Доставка до РФ, авто (18–25 дней): ${range(ship.auto)}`,
+    ship && `Доставка до РФ, самолёт (2–7 дней): ${range(ship.air)}`,
   ].filter(x => x !== false && x !== undefined && x !== null).join('\n').trim();
   $('#p-info').hidden = true;
   $('#info-btn').setAttribute('aria-expanded', 'false');
@@ -129,6 +152,13 @@ function renderCart() {
     ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${[l.size && 'Размер ' + esc(l.size), l.p.eta && 'Срок ' + esc(l.p.eta)].filter(Boolean).join(' · ')}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div>${rub(l.p.price * l.qty)}</div></div>`).join('')
     : '<p class="co-empty">Корзина пуста<br><a class="co-link" href="#/">Перейти в каталог</a></p>';
   $('#subtotal').textContent = $('#total').textContent = rub(total);
+  const weight = lines.reduce((s, l) => s + (l.p.weight || 0) * l.qty, 0);
+  const ship = lines.length && lines.every(l => l.p.weight) ? shipEstimate(weight, lines.length) : null;
+  $('#ship-auto').textContent = ship ? range(ship.auto) : '—';
+  $('#ship-air').textContent = ship ? range(ship.air) : '—';
+  $('#ship-note').textContent = ship
+    ? `Примерно, по весу ~${Math.round(weight * 10) / 10} кг. Точную сумму и доставку по России посчитаем по приезду груза.`
+    : lines.length ? 'Стоимость доставки посчитаем после оформления.' : '';
   $('#submit').disabled = !lines.length;
 }
 
@@ -145,27 +175,23 @@ function route() {
   const m = /^#\/p\/(.+)$/.exec(location.hash);
   if (m) return showProduct(decodeURIComponent(m[1]));
   if (location.hash === '#/cart') return showCart();
+  if (location.hash === '#/about' || location.hash === '#/delivery') {
+    const page = location.hash.slice(2);
+    view(page);
+    document.title = (page === 'about' ? 'О проекте' : 'Доставка') + ' — TEMPT';
+    if (page === 'delivery') renderDelivery();
+    return scrollTo(0, 0);
+  }
   const b = /^#\/b\/(.+)$/.exec(location.hash);
   if (b) sel.brand = new Set([decodeURIComponent(b[1])]);
   showHome();
 }
 
 // --- события ---
-$('#density').onclick = () => {
-  dense = !dense;
-  store('dense', dense ? '1' : '0');
-  renderGrid();
-};
-$('#brands').onclick = e => {
-  if (!e.target.closest('[data-all]')) return;
-  sel.brand.clear();
-  if (location.hash === '#/' || location.hash === '') { e.preventDefault(); refresh(); }
-};
 $('#filters').onchange = e => {
   const { g } = e.target.dataset;
   e.target.checked ? sel[g].add(e.target.value) : sel[g].delete(e.target.value);
   if (location.hash.startsWith('#/b/')) history.replaceState(null, '', '#/');
-  renderBrands();
   renderGrid();
 };
 $('#filters').onclick = e => {
@@ -251,7 +277,10 @@ $('#checkout').onsubmit = async e => {
 };
 
 (async () => {
-  products = await (await fetch('/api/products')).json();
+  [products, settings] = await Promise.all([
+    fetch('/api/products').then(r => r.json()),
+    fetch('/api/settings').then(r => (r.ok ? r.json() : {})).catch(() => ({})),
+  ]);
   cart = cart.filter(l => products.some(p => p.id === l.id));
   saveCart();
   renderCart();

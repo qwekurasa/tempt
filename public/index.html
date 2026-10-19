@@ -10,11 +10,14 @@
 <body>
 <header>
   <div class="top-l">
-    <button class="icon-btn" id="density" aria-label="Изменить размер сетки">+</button>
     <a class="icon-btn" id="pback" href="#/" aria-label="Назад в каталог">‹</a>
     <a class="logo" href="#/">TEMPT</a>
   </div>
-  <nav class="brands" id="brands" aria-label="Бренды"></nav>
+  <nav class="tabs" id="tabs" aria-label="Разделы">
+    <a href="#/about" data-tab="about">О проекте</a>
+    <a href="#/delivery" data-tab="delivery">Доставка</a>
+    <a href="#/" data-tab="home">Подборка</a>
+  </nav>
   <a class="bag" href="#/cart" aria-label="Корзина"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 5.5h10l-.8 8.5H3.8z"/><path d="M5.8 5.5V4a2.2 2.2 0 0 1 4.4 0v1.5"/></svg><span id="cart-count"></span></a>
 </header>
 
@@ -36,6 +39,52 @@
   </div>
   <footer class="foot"><span>© TEMPT</span><a href="/privacy.html">Политика конфиденциальности</a></footer>
 </main>
+
+<section class="page" id="about" hidden>
+  <h1>О проекте</h1>
+  <p>TEMPT — выкуп и доставка вещей из Китая.</p>
+  <p>Подборки публикую в Telegram-канале, а здесь собран весь ассортимент. Выбираете вещь, оформляете заказ на сайте — состав заказа, реквизиты для оплаты и статусы доставки приходят вам в Telegram.</p>
+  <p>Сроки и стоимость доставки — во вкладке <a class="link" href="#/delivery">Доставка</a>.</p>
+</section>
+
+<section class="page" id="delivery" hidden>
+  <h1>Доставка в Россию и Беларусь</h1>
+
+  <h2>Сроки</h2>
+  <ul>
+    <li>Перевозка по Китаю: 3–10 дней</li>
+    <li>Авто быстрое до РФ: 18–25 дней</li>
+    <li>Самолёт до РФ: 2–7 дней</li>
+  </ul>
+
+  <h2>Стоимость доставки</h2>
+  <ul>
+    <li>Авто быстрое: от 1 кг | <span data-s="auto1"></span> $/кг</li>
+    <li>Авто быстрое: от 10 кг | <span data-s="auto10"></span> $/кг</li>
+    <li>Самолёт до РФ: от 1 кг | <span data-s="air"></span> $/кг</li>
+  </ul>
+  <p>Дополнительный сбор за доставку по Китаю: <span data-s="chinaFeeMin"></span>–<span data-s="chinaFeeMax"></span> ¥</p>
+  <p class="rates" id="rates"></p>
+
+  <h2>Самовыкуп</h2>
+  <ul><li>Комиссия: 4% от стоимости товара</li></ul>
+
+  <h2>Оплата</h2>
+  <ul>
+    <li>Россия: СБП</li>
+    <li>Беларусь: СБП +5%</li>
+  </ul>
+
+  <h2>Условия доставки</h2>
+  <p class="plain">Стремлюсь максимально выгодно и безопасно для вас выкупить товар. В некоторых случаях возможна замена источника заказа на аналогичный с сохранением всех характеристик товара. Это позволяет оптимизировать стоимость и сроки доставки. Окончательное решение по выбору поставщика остается на моё усмотрение, исходя из условий надежности и эффективности.</p>
+
+  <h2>Доставка по России</h2>
+  <ul>
+    <li>Транспортная компания: Яндекс Доставка по России</li>
+    <li>Сбор за перекидку на ТК: ~250 ₽</li>
+    <li>Стоимость по России рассчитывается индивидуально по приезду груза в РФ</li>
+  </ul>
+</section>
 
 <section class="pdp" id="product" hidden>
   <div class="gallery" id="gallery"></div>
@@ -89,8 +138,10 @@
       <div id="lines"></div>
       <div class="co-rows">
         <div class="co-row"><span>Товары</span><span id="subtotal"></span></div>
-        <div class="co-row"><span>Доставка</span><span>По тарифу службы</span></div>
-        <div class="co-row co-total"><span>Итого</span><span id="total"></span></div>
+        <div class="co-row"><span>Доставка до РФ, авто</span><span id="ship-auto">—</span></div>
+        <div class="co-row"><span>Доставка до РФ, самолёт</span><span id="ship-air">—</span></div>
+        <p class="co-note" id="ship-note"></p>
+        <div class="co-row co-total"><span>Итого за товары</span><span id="total"></span></div>
       </div>
     </aside>
   </div>
