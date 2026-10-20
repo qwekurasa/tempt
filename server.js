@@ -1,9 +1,8 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
-const { put, del } = require('@vercel/blob');
+const { put } = require('@vercel/blob');
 const { handleUpload } = require('@vercel/blob/client');
-const { waitUntil } = require('@vercel/functions');
 const seed = require('./data/products.json');
 const Shipping = require('./public/shipping.js');
 
@@ -15,11 +14,9 @@ const rub = n => n.toLocaleString('ru-RU') + ' ₽';
 // --- storage (Vercel Blob) ---
 const isBlob = u => /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\//.test(u);
 const isImage = u => typeof u === 'string' && (isBlob(u) || /^\/demo\/[\w-]+\.svg$/.test(u));
-// Удаление фото не задерживает ответ: на Vercel дорабатывает через waitUntil
+// Фото из хранилища не удаляются автоматически: так ни одна ошибка не сотрёт фото живого товара.
 const removeImages = urls => {
-  if (process.env.LOG_DELETES) console.log('DEL', JSON.stringify(urls));
-  const b = urls.filter(isBlob);
-  if (b.length && blobHost()) waitUntil(del(b).catch(e => console.error('del:', e.message)));
+  if (process.env.LOG_DELETES) console.log('DEL (skipped)', JSON.stringify(urls));
 };
 
 // Каталог читается по прямому URL через CDN (кэш до 60 с); fresh — в обход кэша, для админки и изменений.
