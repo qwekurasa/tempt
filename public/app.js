@@ -212,6 +212,7 @@ function renderCart() {
   $('#subtotal').textContent = rub(q.goods);
   $('#ship-china').textContent = q.china === null ? (lines.length ? q.chinaCny + ' ¥' : '—') : rub(q.china);
   $('#ship-intl').textContent = !lines.length ? '—' : or(q.intl === null ? null : q.intl + q.tk);
+  $('#ship-intl-info').textContent = !lines.length ? '' : `авто ~${q.kg} кг × ${q.rate} $ = ${or(q.intl)} + перекидка на ТК ${rub(q.tk)}`;
   $('#total-label').textContent = q.complete ? 'Итого, примерно' : 'Итого без неизвестных частей';
   $('#total').textContent = rub(q.total);
   $('#ship-note').textContent = !lines.length ? '' : q.complete
