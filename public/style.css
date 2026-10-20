@@ -277,3 +277,11 @@ html:not([data-theme=dark]) .img img,html:not([data-theme=dark]) .gallery img,ht
 .co-form{justify-self:center;align-items:center;text-align:center}
 .co-form .howto{text-align:left}
 .co-form .co-btn{width:100%;max-width:420px}
+/* кнопки полые: обводка чёрная в светлой теме, белая в тёмной */
+:root{--line:#000}
+html[data-theme=dark]{--line:#fff}
+.co-btn,.btn{background:transparent!important;color:var(--line)!important;border:1px solid var(--line)}
+@media (hover:hover){.co-btn:not(:disabled):hover,.btn:not(:disabled):hover{background:var(--surface)!important}}
+.co-btn:disabled{opacity:.35}
+.f-group label:has(input:checked){background:transparent!important;color:var(--line)!important;border-color:var(--line)!important;font-weight:700}
+.add-btn{border-color:var(--line);color:var(--line)}
