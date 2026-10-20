@@ -68,7 +68,6 @@
   <h2>Доставка по Китаю, за 1 вещь</h2>
   <ul id="cats"></ul>
   <p class="rates" id="rates"></p>
-  <p class="rates">Вес считается от 1 кг, тариф от 10 кг — на общий вес заказа.</p>
 
 
   <h2>Оплата</h2>
@@ -81,7 +80,6 @@
   <h2>Доставка по России</h2>
   <ul>
     <li>Транспортные компании: Яндекс, Ozon, СДЭК — на выбор</li>
-    <li>Сбор за перекидку на ТК: ~250 ₽</li>
     <li>Стоимость по России рассчитывается индивидуально по приезду груза в РФ</li>
   </ul>
 </section>
@@ -122,7 +120,7 @@
     <form class="co-form" id="checkout">
       <h2>Ваш Telegram</h2>
       <label>Telegram ник<input name="tg" required placeholder="@username" pattern="@?[A-Za-z0-9_]{5,32}" autocomplete="off"></label>
-      <p class="co-note">Не меняйте ник до получения заказа — по нему я свяжусь с вами, пришлю реквизиты и уточню доставку. Других данных на сайте не нужно.</p>
+      <p class="co-note">Не меняйте ник до получения заказа — по нему я свяжусь с вами.</p>
 
 
       <label class="co-consent"><input type="checkbox" name="consent" required><span>Даю <a href="/consent.html" target="_blank">согласие на обработку</a> ника Telegram и принимаю <a href="/privacy.html" target="_blank">политику конфиденциальности</a></span></label>
@@ -136,8 +134,7 @@
       <div class="co-rows">
         <div class="co-row"><span>Товары</span><span id="subtotal"></span></div>
         <div class="co-row"><span>Доставка по Китаю</span><span id="ship-china">—</span></div>
-        <div class="co-row"><span id="ship-intl-label">Авто до РФ</span><span id="ship-intl">—</span></div>
-        <div class="co-row"><span>Перекидка на ТК</span><span id="ship-tk">—</span></div>
+        <div class="co-row"><span>Доставка до России</span><span id="ship-intl">—</span></div>
         <div class="co-row co-total"><span id="total-label">Итого</span><span id="total"></span></div>
         <p class="co-note" id="ship-note"></p>
       </div>

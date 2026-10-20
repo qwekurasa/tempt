@@ -33,14 +33,12 @@ test('SHIP корзина: по Китаю за каждую вещь, тари�
   await page.getByRole('button', { name: '42', exact: true }).click();
   await page.getByRole('button', { name: 'В корзину' }).click();
   await page.goto('/#/cart');
-  await expect(page.locator('#ship-intl')).toHaveText('725 ₽'); // 1.3 кг × 6.2 × 90
+  await expect(page.locator('#ship-intl')).toHaveText('975 ₽'); // 1.3 кг × 6.2 × 90 + 250 ТК
   for (let i = 0; i < 7; i++) await page.getByRole('button', { name: '+' }).click();
   // 8 пар: 10.4 кг → 4.5 $/кг
   await expect(page.locator('#subtotal')).toHaveText('151 200 ₽');
   await expect(page.locator('#ship-china')).toHaveText('1 920 ₽'); // 20 ¥ × 8 × 12
-  await expect(page.locator('#ship-intl-label')).toHaveText('Авто до РФ, ~10.4 кг × 4.5 $');
-  await expect(page.locator('#ship-intl')).toHaveText('4 212 ₽');
-  await expect(page.locator('#ship-tk')).toHaveText('250 ₽');
+  await expect(page.locator('#ship-intl')).toHaveText('4 462 ₽');
   await expect(page.locator('#total')).toHaveText('157 582 ₽');
   await expect(page.locator('#total-label')).toHaveText('Итого, примерно');
 });

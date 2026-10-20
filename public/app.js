@@ -211,9 +211,7 @@ function renderCart() {
   const or = v => (v === null ? '—' : rub(v));
   $('#subtotal').textContent = rub(q.goods);
   $('#ship-china').textContent = q.china === null ? (lines.length ? q.chinaCny + ' ¥' : '—') : rub(q.china);
-  $('#ship-intl-label').textContent = q.weight ? `Авто до РФ, ~${q.weight} кг × ${q.rate} $` : 'Авто до РФ';
-  $('#ship-intl').textContent = or(q.intl);
-  $('#ship-tk').textContent = lines.length ? rub(q.tk) : '—';
+  $('#ship-intl').textContent = !lines.length ? '—' : or(q.intl === null ? null : q.intl + q.tk);
   $('#total-label').textContent = q.complete ? 'Итого, примерно' : 'Итого без неизвестных частей';
   $('#total').textContent = rub(q.total);
   $('#ship-note').textContent = !lines.length ? '' : q.complete
