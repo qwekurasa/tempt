@@ -1,6 +1,6 @@
 # Deploy: tempt
 
-Прод: https://tempt-rust.vercel.app. Vercel, проект `tempt`, автодеплой из `main` репозитория `qwekurasa/tempt`. Последний деплой 6e33ae0 — Ready.
+Прод: https://temptstr.vercel.app. Vercel, проект `tempt`, автодеплой из `main` репозитория `qwekurasa/tempt`. Последний деплой 6e33ae0 — Ready.
 
 ## Preflight (2026-10-19)
 
