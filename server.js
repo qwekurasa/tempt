@@ -182,6 +182,9 @@ app.put('/api/settings', auth, serial(async (req, res) => {
     if (!(n > 0 && n < 100000)) return res.status(400).json({ error: 'Заполните все поля положительными числами' });
     v[k] = n;
   }
+  const contact = S(req.body.contact).replace(/^@/, '');
+  if (contact && !/^[A-Za-z0-9_]{5,32}$/.test(contact)) return res.status(400).json({ error: 'Некорректный Telegram для связи' });
+  v.contact = contact;
   res.json(await saveSettings(v));
 }));
 
@@ -320,9 +323,6 @@ const SERVICES = { ozon: 'Ozon', yandex: 'Яндекс', cdek: 'СДЭК' };
 
 app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
   const b = req.body;
-  const nick = S(b.tg).replace(/^@/, '');
-  if (!/^[A-Za-z0-9_]{5,32}$/.test(nick)) return res.status(400).json({ error: 'Некорректный Telegram ник' });
-  if (b.consent !== 'on') return res.status(400).json({ error: 'Нужно согласие на обработку данных' });
 
   const products = await load();
   const items = Array.isArray(b.items) ? b.items.slice(0, 50) : [];
@@ -357,7 +357,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     `Перекидка на ТК: ${rub(q.tk)}`,
     `Итого${q.complete ? ' (примерно)' : ' без неизвестных частей'}: ${rub(q.total)}`,
     '',
-    `Telegram: @${nick}`,
+    'Покупатель напишет вам в Telegram с номером заказа.',
   ].join('\n');
 
   try {

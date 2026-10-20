@@ -365,6 +365,9 @@ $('#checkout').onsubmit = async e => {
     renderCart();
     e.target.reset();
     $('#order-id').textContent = '#' + j.id;
+    const tgl = $('#tg-link');
+    tgl.hidden = !settings.contact;
+    if (settings.contact) tgl.href = `https://t.me/${settings.contact}?text=${encodeURIComponent('Здравствуйте! Заказ #' + j.id)}`;
     $('#co-main').hidden = true;
     $('#done').hidden = false;
     scrollTo(0, 0);

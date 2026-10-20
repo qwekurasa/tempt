@@ -8,10 +8,6 @@ async function addTee(page, size = 'M') {
   await expect(page.locator('#p-status')).toContainText('Добавлено');
 }
 
-async function fill(page) {
-  await page.getByLabel('Telegram ник').fill('@test_buyer');
-  await expect(page.getByLabel('Телефон')).toHaveCount(0);
-}
 
 test('F01-E5 пустая корзина: оформить нельзя', async ({ page }) => {
   await page.goto('/#/cart');
@@ -27,29 +23,14 @@ test('F01-H5 оформление заказа', async ({ page }) => {
   await expect(page.locator('#subtotal')).toHaveText('5 900 ₽');
   await page.getByRole('button', { name: '+' }).click();
   await expect(page.locator('#subtotal')).toHaveText('11 800 ₽');
-  await fill(page);
-  await page.getByRole('checkbox', { name: /Даю согласие/ }).check();
   await page.getByRole('button', { name: 'Оформить заказ' }).click();
   await expect(page.getByRole('heading', { name: /Заказ #[0-9A-F]{12} оформлен/ })).toBeVisible();
   await expect(page.locator('#cart-count2')).toHaveText('0');
 });
 
-test('F01-N1 без согласия форма не отправляется', async ({ page }) => {
-  await addTee(page);
-  await page.goto('/#/cart');
-  await fill(page);
-  let sent = false;
-  page.on('request', r => r.url().endsWith('/api/order') && (sent = true));
-  await page.getByRole('button', { name: 'Оформить заказ' }).click();
-  await expect(page.getByRole('button', { name: 'Оформить заказ' })).toBeVisible();
-  expect(sent).toBe(false);
-});
-
 test('F01-E6 двойной клик отправляет один заказ', async ({ page }) => {
   await addTee(page);
   await page.goto('/#/cart');
-  await fill(page);
-  await page.getByRole('checkbox', { name: /Даю согласие/ }).check();
   let count = 0;
   page.on('request', r => r.url().endsWith('/api/order') && count++);
   await page.getByRole('button', { name: 'Оформить заказ' }).dblclick();

@@ -1,15 +1,13 @@
 const { test, expect } = require('@playwright/test');
 
 const order = (over = {}) => ({
-  tg: '@test_buyer', consent: 'on', items: [{ id: 'demo-tee-1', size: 'M', qty: 1 }], ...over,
+  items: [{ id: 'demo-tee-1', size: 'M', qty: 1 }], ...over,
 });
 
 test.describe('API', () => {
 
   test('F01-N2 неверные данные заказа', async ({ request }) => {
     for (const [over, msg] of [
-      [{ tg: '@ab' }, 'Некорректный Telegram ник'],
-      [{ consent: undefined }, 'Нужно согласие на обработку данных'],
       [{ items: [{ id: 'demo-tee-1', size: 'XXXL', qty: 1 }] }, 'Корзина устарела, обновите страницу'],
       [{ items: [{ id: 'demo-tee-1', size: 'M', qty: 99 }] }, 'Корзина устарела, обновите страницу'],
       [{ items: [] }, 'Корзина пуста'],
@@ -21,7 +19,7 @@ test.describe('API', () => {
   });
 
   test('F01-N3 цена с клиента игнорируется', async ({ request }) => {
-    const r = await request.post('/api/order', { data: order({ items: [{ id: 'demo-tee-1', size: 'M', qty: 1, price: 1 }], tg: '@price_check' }) });
+    const r = await request.post('/api/order', { data: order({ items: [{ id: 'demo-tee-1', size: 'M', qty: 1, price: 1 }]}) });
     expect(r.status()).toBe(200);
   });
 

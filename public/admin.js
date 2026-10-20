@@ -201,7 +201,7 @@ $('#rates').onsubmit = async e => {
   $('#rates-err').textContent = '';
   $('#rates-submit').disabled = true;
   try {
-    const body = Object.fromEntries(Object.keys(Shipping.DEFAULTS).map(k => [k, f[k].value]));
+    const body = Object.fromEntries([...Object.keys(Shipping.DEFAULTS), 'contact'].map(k => [k, f[k].value]));
     await api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     $('#rates-submit').textContent = 'Сохранено ✓';
     setTimeout(() => ($('#rates-submit').textContent = 'Сохранить настройки'), 1500);
