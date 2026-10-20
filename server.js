@@ -13,7 +13,7 @@ const rub = n => n.toLocaleString('ru-RU') + ' ₽';
 
 // --- storage (Vercel Blob) ---
 const isBlob = u => /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\//.test(u);
-const isImage = u => typeof u === 'string' && (isBlob(u) || /^\/demo\/[\w-]+\.svg$/.test(u));
+const isImage = u => typeof u === 'string' && (isBlob(u) || /^\/demo\/[\w-]+\.svg$/.test(u) || (!blobHost() && /^\/mem\/[\w-]+\.\w+$/.test(u)));
 // Фото из хранилища не удаляются автоматически: так ни одна ошибка не сотрёт фото живого товара.
 const removeImages = urls => {
   if (process.env.LOG_DELETES) console.log('DEL (skipped)', JSON.stringify(urls));
@@ -24,9 +24,13 @@ const blobHost = () => {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   return token && `https://${token.split('_')[3].toLowerCase()}.public.blob.vercel-storage.com`;
 };
+// Последняя запись этого экземпляра сервера: CDN хранилища может ещё отдавать старую версию,
+// и запись поверх старого списка теряла бы товары/фото.
+let lastSaved = null;
 async function load(fresh) {
   const host = blobHost();
   if (!host) return structuredClone(memProducts);
+  if (fresh && lastSaved && Date.now() - lastSaved.at < 120e3) return structuredClone(lastSaved.items);
   const r = await fetch(`${host}/products.json${fresh ? '?t=' + Date.now() : ''}`, { cache: 'no-store' });
   if (r.status === 404) return structuredClone(seed);
   if (!r.ok) throw new Error('products: ' + r.status);
@@ -48,13 +52,13 @@ async function saveSettings(v) {
 
 let memProducts = seed; // без Blob (локально, e2e) — в памяти
 const save = items =>
-  !blobHost() ? (memProducts = structuredClone(items)) : put('products.json', JSON.stringify(items), {
+  !blobHost() ? (memProducts = structuredClone(items)) : (lastSaved = { items: structuredClone(items), at: Date.now() }, put('products.json', JSON.stringify(items), {
     access: 'public',
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: 'application/json',
     cacheControlMaxAge: 60,
-  });
+  }));
 
 // --- Telegram ---
 async function tg(method, body) {
@@ -190,8 +194,19 @@ app.post('/api/upload', auth, express.raw({ type: Object.keys(EXT), limit: '4mb'
   if (!EXT[type] || !Buffer.isBuffer(req.body) || !req.body.length) {
     return res.status(400).json({ error: 'Нужен файл JPG, PNG, WEBP или AVIF' });
   }
-  const blob = await put(`images/${crypto.randomUUID()}${EXT[type]}`, req.body, { access: 'public', contentType: type });
+  const name = `${crypto.randomUUID()}${EXT[type]}`;
+  if (!blobHost()) { // локально и в e2e — в памяти
+    memImages.set(name, { type, body: req.body });
+    return res.json({ url: '/mem/' + name });
+  }
+  const blob = await put('images/' + name, req.body, { access: 'public', contentType: type });
   res.json({ url: blob.url });
+});
+const memImages = new Map();
+app.get('/mem/:f', (req, res) => {
+  const f = memImages.get(req.params.f);
+  if (!f) return res.sendStatus(404);
+  res.type(f.type).send(f.body);
 });
 
 // Прямая загрузка фото из браузера в Blob — без сжатия и без лимита 4.5 МБ

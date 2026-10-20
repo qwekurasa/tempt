@@ -133,12 +133,15 @@ async function uploadImage(f) {
   if (!OK_TYPES.includes(f.type)) f = await toJpeg(f);
   if (f.size <= 4 * 1024 * 1024) return viaServer(f);
   try {
-    blobClient ||= await import('https://esm.sh/@vercel/blob@2.8.2/client');
+    blobClient ||= await import('/blob-client.js');
     return (await blobClient.upload('images/photo' + ({ 'image/png': '.png', 'image/webp': '.webp', 'image/avif': '.avif' }[f.type] || '.jpg'), f, { access: 'public', handleUploadUrl: '/api/upload-token', contentType: f.type })).url;
   } catch (e) {
     console.warn('Прямая загрузка не удалась', e);
     let j = await toJpeg(f);
-    if (j.size > 4 * 1024 * 1024) j = await toJpeg(f, 4000);
+    for (const max of [4000, 3200, 2560, 2048]) {
+      if (j.size <= 4 * 1024 * 1024) break;
+      j = await toJpeg(f, max);
+    }
     return viaServer(j);
   }
 }
