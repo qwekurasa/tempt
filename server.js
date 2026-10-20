@@ -320,14 +320,9 @@ const SERVICES = { ozon: 'Ozon', yandex: 'Яндекс', cdek: 'СДЭК' };
 
 app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
   const b = req.body;
-  const name = S(b.name), nick = S(b.tg).replace(/^@/, ''), phone = S(b.phone), address = S(b.address);
-  const service = SERVICES[b.service];
-  if (name.length < 3 || name.length > 150) return res.status(400).json({ error: 'Укажите ФИО' });
+  const nick = S(b.tg).replace(/^@/, '');
   if (!/^[A-Za-z0-9_]{5,32}$/.test(nick)) return res.status(400).json({ error: 'Некорректный Telegram ник' });
-  if (!/^\+?[\d\s()-]{10,20}$/.test(phone)) return res.status(400).json({ error: 'Некорректный номер телефона' });
-  if (!service) return res.status(400).json({ error: 'Выберите службу доставки' });
-  if (address.length < 5 || address.length > 300) return res.status(400).json({ error: 'Укажите адрес пункта выдачи' });
-  if (b.consent !== 'on') return res.status(400).json({ error: 'Нужно согласие на обработку персональных данных' });
+  if (b.consent !== 'on') return res.status(400).json({ error: 'Нужно согласие на обработку данных' });
 
   const products = await load();
   const items = Array.isArray(b.items) ? b.items.slice(0, 50) : [];
@@ -362,11 +357,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     `Перекидка на ТК: ${rub(q.tk)}`,
     `Итого${q.complete ? ' (примерно)' : ' без неизвестных частей'}: ${rub(q.total)}`,
     '',
-    `ФИО: ${name}`,
     `Telegram: @${nick}`,
-    `Телефон: ${phone}`,
-    `Доставка: ${service}`,
-    `Адрес ПВЗ: ${address}`,
   ].join('\n');
 
   try {

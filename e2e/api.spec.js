@@ -1,8 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 const order = (over = {}) => ({
-  name: 'Тест Тест', tg: '@test_buyer', phone: '+79000000000', service: 'cdek',
-  address: 'Москва, 1', consent: 'on', items: [{ id: 'demo-tee-1', size: 'M', qty: 1 }], ...over,
+  tg: '@test_buyer', consent: 'on', items: [{ id: 'demo-tee-1', size: 'M', qty: 1 }], ...over,
 });
 
 test.describe('API', () => {
@@ -10,9 +9,7 @@ test.describe('API', () => {
   test('F01-N2 неверные данные заказа', async ({ request }) => {
     for (const [over, msg] of [
       [{ tg: '@ab' }, 'Некорректный Telegram ник'],
-      [{ phone: '123' }, 'Некорректный номер телефона'],
-      [{ service: 'dhl' }, 'Выберите службу доставки'],
-      [{ consent: undefined }, 'Нужно согласие на обработку персональных данных'],
+      [{ consent: undefined }, 'Нужно согласие на обработку данных'],
       [{ items: [{ id: 'demo-tee-1', size: 'XXXL', qty: 1 }] }, 'Корзина устарела, обновите страницу'],
       [{ items: [{ id: 'demo-tee-1', size: 'M', qty: 99 }] }, 'Корзина устарела, обновите страницу'],
       [{ items: [] }, 'Корзина пуста'],

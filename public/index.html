@@ -120,21 +120,12 @@
 
   <div class="co-grid" id="co-main">
     <form class="co-form" id="checkout">
-      <h2>Контактные данные</h2>
-      <label>ФИО<input name="name" required minlength="3" maxlength="150" autocomplete="name" placeholder="Иванов Иван Иванович"></label>
+      <h2>Ваш Telegram</h2>
       <label>Telegram ник<input name="tg" required placeholder="@username" pattern="@?[A-Za-z0-9_]{5,32}" autocomplete="off"></label>
-      <p class="co-note">Не меняйте ник до получения заказа — по нему я свяжусь с вами и пришлю реквизиты.</p>
-      <label>Телефон<input name="phone" type="tel" required placeholder="+7 900 000-00-00" autocomplete="tel"></label>
+      <p class="co-note">Не меняйте ник до получения заказа — по нему я свяжусь с вами, пришлю реквизиты и уточню доставку. Других данных на сайте не нужно.</p>
 
-      <h2>Доставка</h2>
-      <div class="co-opts">
-        <label><input type="radio" name="service" value="ozon" required><span><span>Ozon<small>Пункт выдачи Ozon</small></span></span></label>
-        <label><input type="radio" name="service" value="yandex"><span><span>Яндекс<small>Пункт выдачи Яндекс Маркета</small></span></span></label>
-        <label><input type="radio" name="service" value="cdek"><span><span>СДЭК<small>Пункт выдачи СДЭК</small></span></span></label>
-      </div>
-      <label>Точный адрес пункта выдачи<textarea name="address" rows="3" required minlength="5" maxlength="300" placeholder="Город, улица, дом"></textarea></label>
 
-      <label class="co-consent"><input type="checkbox" name="consent" required><span>Даю <a href="/consent.html" target="_blank">согласие на обработку персональных данных</a> и принимаю <a href="/privacy.html" target="_blank">политику конфиденциальности</a></span></label>
+      <label class="co-consent"><input type="checkbox" name="consent" required><span>Даю <a href="/consent.html" target="_blank">согласие на обработку</a> ника Telegram и принимаю <a href="/privacy.html" target="_blank">политику конфиденциальности</a></span></label>
       <p class="err" id="err"></p>
       <button class="co-btn" id="submit">Оформить заказ</button>
     </form>

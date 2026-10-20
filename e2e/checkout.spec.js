@@ -9,11 +9,8 @@ async function addTee(page, size = 'M') {
 }
 
 async function fill(page) {
-  await page.getByLabel('ФИО').fill('Тестов Тест Тестович');
   await page.getByLabel('Telegram ник').fill('@test_buyer');
-  await page.getByLabel('Телефон').fill('+7 900 000-00-00');
-  await page.getByText('Пункт выдачи СДЭК').click();
-  await page.getByLabel('Точный адрес пункта выдачи').fill('Москва, ул. Тестовая, 1');
+  await expect(page.getByLabel('Телефон')).toHaveCount(0);
 }
 
 test('F01-E5 пустая корзина: оформить нельзя', async ({ page }) => {
