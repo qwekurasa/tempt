@@ -167,6 +167,7 @@ body.co header{display:none}
 .co-rows{margin-top:24px}
 .co-row{display:flex;justify-content:space-between;padding:6px 0}
 .co-sub{font-size:10px;margin:-4px 0 6px;text-align:right}
+.howto{padding-left:18px;display:flex;flex-direction:column;gap:8px;line-height:1.6;text-transform:none;letter-spacing:.01em}
 .co-total{font-weight:700;margin-top:10px}
 .co-done{max-width:560px;margin:72px auto;padding:0 16px;display:flex;flex-direction:column;gap:20px;text-align:center}
 .co-consent{flex-direction:row!important;align-items:flex-start;gap:10px!important;font-size:11px;text-transform:none}

@@ -366,8 +366,9 @@ $('#checkout').onsubmit = async e => {
     e.target.reset();
     $('#order-id').textContent = '#' + j.id;
     const tgl = $('#tg-link');
-    tgl.hidden = !settings.contact;
-    if (settings.contact) tgl.href = `https://t.me/${settings.contact}?text=${encodeURIComponent('Здравствуйте! Заказ #' + j.id)}`;
+    const contact = settings.contact || 'tempt_sup';
+    tgl.hidden = false;
+    tgl.href = `https://t.me/${contact}?text=${encodeURIComponent('Здравствуйте! Заказ #' + j.id)}`;
     $('#co-main').hidden = true;
     $('#done').hidden = false;
     scrollTo(0, 0);

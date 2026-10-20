@@ -118,8 +118,12 @@
 
   <div class="co-grid" id="co-main">
     <form class="co-form" id="checkout">
-      <h2>Оформление</h2>
-      <p class="co-note">Нажмите «Оформить заказ» — вы получите номер заказа. Напишите его мне в Telegram, и я пришлю реквизиты для оплаты.</p>
+      <h2 style="margin-top:0">Как заказать</h2>
+      <ol class="howto">
+        <li>Нажмите «Оформить заказ» — появится номер заказа.</li>
+        <li>Напишите этот номер в Telegram: <a class="link" href="https://t.me/tempt_sup" target="_blank" rel="noopener">@tempt_sup</a>.</li>
+        <li>Получите реквизиты, оплатите — дальше я сообщаю о статусе доставки.</li>
+      </ol>
       <p class="err" id="err"></p>
       <button class="co-btn" id="submit">Оформить заказ</button>
     </form>
@@ -140,7 +144,7 @@
 
   <div class="co-done" id="done" hidden>
     <h2>Заказ <span id="order-id"></span> оформлен</h2>
-    <p>Напишите мне в Telegram номер заказа — пришлю реквизиты для оплаты.</p>
+    <p>Напишите номер заказа в Telegram <a class="link" href="https://t.me/tempt_sup" target="_blank" rel="noopener">@tempt_sup</a> — пришлю реквизиты для оплаты.</p>
     <a class="co-btn" id="tg-link" target="_blank" rel="noopener" hidden>Написать в Telegram</a>
     <a class="co-link" href="#/">Вернуться в каталог</a>
   </div>
