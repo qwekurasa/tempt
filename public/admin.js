@@ -129,8 +129,34 @@ async function toJpeg(f, max = Infinity) {
   return new Promise(r => c.toBlob(r, 'image/jpeg', 0.95));
 }
 const viaServer = f => api('/api/upload', { method: 'POST', headers: { 'Content-Type': f.type }, body: f }).then(r => r.url);
+// Обрезает пустые поля (прозрачные или белые) и делает квадрат с небольшим отступом,
+// чтобы вещь занимала карточку целиком. Без пустых полей файл не трогаем.
+async function autoSquare(f) {
+  const bmp = await createImageBitmap(f);
+  const W = bmp.width, H = bmp.height, k = Math.min(1, 600 / Math.max(W, H));
+  const sw = Math.max(1, Math.round(W * k)), sh = Math.max(1, Math.round(H * k));
+  const sc = document.createElement('canvas'); sc.width = sw; sc.height = sh;
+  const sx = sc.getContext('2d', { willReadFrequently: true }); sx.drawImage(bmp, 0, 0, sw, sh);
+  const d = sx.getImageData(0, 0, sw, sh).data;
+  let x0 = sw, y0 = sh, x1 = -1, y1 = -1;
+  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+    const i = (y * sw + x) * 4;
+    if (d[i + 3] > 16 && !(d[i] > 240 && d[i + 1] > 240 && d[i + 2] > 240)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  if (x1 < 0) return f;
+  const cw = (x1 - x0 + 1) / k, ch = (y1 - y0 + 1) / k;
+  if (cw * ch > W * H * 0.8 && Math.abs(W - H) < 2) return f; // уже плотный квадрат
+  const side = Math.round(Math.max(cw, ch) * 1.06);
+  const png = f.type === 'image/png' || f.type === 'image/webp';
+  const c = document.createElement('canvas'); c.width = c.height = side;
+  const cx = c.getContext('2d');
+  if (!png) { cx.fillStyle = '#fff'; cx.fillRect(0, 0, side, side); }
+  cx.drawImage(bmp, x0 / k, y0 / k, cw, ch, (side - cw) / 2, (side - ch) / 2, cw, ch);
+  return new Promise(r => c.toBlob(r, png ? 'image/png' : 'image/jpeg', 0.95));
+}
 async function uploadImage(f) {
   if (!OK_TYPES.includes(f.type)) f = await toJpeg(f);
+  try { f = await autoSquare(f); } catch (e) { console.warn('autoSquare', e); }
   if (f.size <= 4 * 1024 * 1024) return viaServer(f);
   try {
     blobClient ||= await import('/blob-client.js');
