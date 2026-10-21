@@ -105,10 +105,10 @@ function resetForm() {
   form.reset();
   form.id.value = '';
   renderTypes();
-  form.images.required = true;
+  prodPhotos.set([]);
   $('#pf-title').textContent = 'Новый товар';
   $('#pf-submit').textContent = 'Добавить';
-  $('#pf-cancel').hidden = $('#img-note').hidden = true;
+  $('#pf-cancel').hidden = true;
   $('#pf-err').textContent = '';
 }
 
@@ -185,6 +185,41 @@ async function uploadImage(f) {
   }
 }
 
+// Фото добавляются по одному или пачкой и копятся; загрузка — при сохранении
+function photoList(input, box) {
+  let items = []; // { url } — уже загруженные, { file, src } — новые
+  const render = () => {
+    box.innerHTML = items.map((it, i) => `<div class="pthumb"><img src="${esc(it.url || it.src)}" alt=""><button type="button" data-rm="${i}" aria-label="Убрать фото">×</button>${i ? `<button type="button" data-first="${i}" aria-label="Сделать обложкой">★</button>` : '<span class="cover">обложка</span>'}</div>`).join('');
+  };
+  input.required = false;
+  input.onchange = () => {
+    for (const file of input.files) if (items.length < 10) items.push({ file, src: URL.createObjectURL(file) });
+    input.value = '';
+    render();
+  };
+  box.onclick = e => {
+    const { rm, first } = e.target.dataset;
+    if (rm !== undefined) items.splice(+rm, 1);
+    if (first !== undefined) items.unshift(...items.splice(+first, 1));
+    render();
+  };
+  return {
+    set: urls => { items = (urls || []).map(url => ({ url })); render(); },
+    count: () => items.length,
+    async upload(progress) {
+      const todo = items.filter(it => it.file).length;
+      let n = 0;
+      for (const it of items) if (it.file) {
+        progress(`Загрузка фото ${++n}/${todo}`);
+        it.url = await uploadImage(it.file);
+        delete it.file;
+      }
+      return items.map(it => it.url);
+    },
+  };
+}
+const prodPhotos = photoList(form.images, $('#pf-photos'));
+
 form.onsubmit = async e => {
   e.preventDefault();
   const id = form.id.value;
@@ -193,15 +228,8 @@ form.onsubmit = async e => {
   btn.disabled = true;
   $('#pf-err').textContent = '';
   try {
-    const files = [...form.images.files].slice(0, 10);
-    let images = id ? products.find(p => p.id === id).images : [];
-    if (files.length) {
-      images = [];
-      for (const [i, f] of files.entries()) {
-        btn.textContent = `Загрузка фото ${i + 1}/${files.length}`;
-        images.push(await uploadImage(f));
-      }
-    }
+    if (!prodPhotos.count()) throw new Error('Добавьте хотя бы одно фото');
+    const images = await prodPhotos.upload(t => (btn.textContent = t));
     btn.textContent = 'Сохранение…';
     const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, kinds: checkedKinds(), weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
     const saved = await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
@@ -272,10 +300,9 @@ function fillForm(p) {
   form.price.value = p.price;
   form.sizes.value = p.sizes.join(', ');
   form.description.value = p.description;
-  form.images.value = '';
-  form.images.required = false;
+  prodPhotos.set(p.images);
   $('#pf-submit').textContent = 'Сохранить';
-  $('#pf-cancel').hidden = $('#img-note').hidden = false;
+  $('#pf-cancel').hidden = false;
   $('#pf-err').textContent = '';
   scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -325,6 +352,7 @@ $('#list').onclick = async e => {
 
 // --- форум ---
 const pf = $('#postf');
+const postPhotos = photoList(pf.images, $('#post-photos'));
 let posts = [];
 const postDate = t => new Date(t).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 async function loadPosts() {
@@ -346,7 +374,8 @@ function resetPost() {
   pf.id.value = '';
   $('#post-title').textContent = 'Новый пост';
   $('#post-submit').textContent = 'Опубликовать';
-  $('#post-cancel').hidden = $('#post-img-note').hidden = true;
+  $('#post-cancel').hidden = true;
+  postPhotos.set([]);
   $('#post-err').textContent = '';
 }
 let pick = new Set();
@@ -365,15 +394,7 @@ pf.onsubmit = async e => {
   btn.disabled = true;
   $('#post-err').textContent = '';
   try {
-    const files = [...pf.images.files].slice(0, 10);
-    let images = id ? posts.find(p => p.id === id).images : [];
-    if (files.length) {
-      images = [];
-      for (const [i, f] of files.entries()) {
-        btn.textContent = `Загрузка фото ${i + 1}/${files.length}`;
-        images.push(await uploadImage(f));
-      }
-    }
+    const images = await postPhotos.upload(t => (btn.textContent = t));
     btn.textContent = 'Сохранение…';
     const saved = await api(id ? '/api/posts/' + encodeURIComponent(id) : '/api/posts', {
       method: id ? 'PUT' : 'POST',
@@ -396,10 +417,10 @@ $('#post-list').onclick = async e => {
   const { pedit, pdel } = e.target.dataset;
   if (pedit) {
     const p = posts.find(x => x.id === pedit);
-    pf.id.value = p.id; pf.title.value = p.title; pf.tag.value = p.tag || ''; pf.text.value = p.text; pick = new Set(p.products || []); renderPick(); pf.images.value = '';
+    pf.id.value = p.id; pf.title.value = p.title; pf.tag.value = p.tag || ''; pf.text.value = p.text; pick = new Set(p.products || []); renderPick(); postPhotos.set(p.images);
     $('#post-title').textContent = 'Редактирование поста';
     $('#post-submit').textContent = 'Сохранить';
-    $('#post-cancel').hidden = $('#post-img-note').hidden = false;
+    $('#post-cancel').hidden = false;
     scrollTo({ top: 0, behavior: 'smooth' });
   }
   if (pdel && confirm('Удалить пост?')) {
