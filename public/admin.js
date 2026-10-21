@@ -39,7 +39,10 @@ async function showPanel() {
   $('#panel').hidden = false;
   const [list, rates] = await Promise.all([api('/api/products?fresh'), api('/api/settings?fresh')]);
   products = list;
-  for (const [k, v] of Object.entries(rates)) if ($('#rates')[k] && k !== 'types') $('#rates')[k].value = v || '';
+  for (const [k, v] of Object.entries(rates)) if ($('#rates')[k] && k !== 'types' && k !== 'sizeTemplates') $('#rates')[k].value = v || '';
+  heads = rates.sizeTemplates?.length ? rates.sizeTemplates : Shipping.SIZE_TEMPLATES;
+  $('#rates').sizeTemplates.value = heads.join('\n');
+  renderHeads(form.sizeHead.value || heads[0]);
   types = rates.types?.length ? rates.types : Shipping.TYPES;
   $('#rates').types.value = types.join('\n');
   renderList();
@@ -244,7 +247,7 @@ form.onsubmit = async e => {
     if (!prodPhotos.count()) throw new Error('Добавьте хотя бы одно фото');
     const images = await prodPhotos.upload(t => (btn.textContent = t));
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, kinds: checkedKinds(), weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, sizeTable: form.sizeTable.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, kinds: checkedKinds(), weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, sizeTable: form.sizeTable.value, sizeHead: form.sizeHead.value, images };
     const saved = await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -286,6 +289,9 @@ $('#rates').onsubmit = async e => {
   try {
     const body = Object.fromEntries([...Object.keys(Shipping.DEFAULTS), 'contact'].map(k => [k, f[k].value]));
     body.types = f.types.value.split('\n').map(t => t.trim()).filter(Boolean);
+    body.sizeTemplates = f.sizeTemplates.value.split('\n').map(t => t.trim()).filter(Boolean);
+    heads = body.sizeTemplates.length ? body.sizeTemplates : Shipping.SIZE_TEMPLATES;
+    renderHeads(form.sizeHead.value);
     types = body.types.length ? body.types : Shipping.TYPES;
     renderTypes(checkedKinds());
     await api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -314,6 +320,7 @@ function fillForm(p) {
   form.sizes.value = p.sizes.join(', ');
   form.description.value = p.description;
   form.sizeTable.value = p.sizeTable || '';
+  renderHeads(p.sizeHead || '');
   previewSizes();
   prodPhotos.set(p.images);
   $('#pf-submit').textContent = 'Сохранить';
@@ -457,12 +464,18 @@ fetch('/api/me').then(r => (r.ok ? showPanel() : showLogin()));
 
 
 // предпросмотр размерной сетки
-function sizeTableHtml(t) {
-  const rows = Shipping.sizeRows(t);
-  if (!rows.length) return '';
+let heads = Shipping.SIZE_TEMPLATES;
+function renderHeads(current) {
+  const list = current && !heads.includes(current) ? [...heads, current] : heads;
+  form.sizeHead.innerHTML = list.map(h => `<option value="${esc(h)}"${h === current ? ' selected' : ''}>${esc(h)}</option>`).join('') + `<option value=""${current === '' ? ' selected' : ''}>Свой — заголовок в первой строке</option>`;
+}
+form.sizeHead.onchange = () => previewSizes();
+function sizeTableHtml() {
+  const rows = Shipping.sizeGrid({ sizeTable: form.sizeTable.value, sizeHead: form.sizeHead.value });
+  if (rows.length < 2) return '';
   const [h, ...b] = rows;
   return `<table class="st"><thead><tr>${h.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${b.map(r => `<tr>${h.map((_, i) => `<td>${esc(r[i] || '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
-function previewSizes() { $('#st-preview').innerHTML = sizeTableHtml(form.sizeTable.value); }
+function previewSizes() { $('#st-preview').innerHTML = sizeTableHtml(); }
 form.sizeTable.oninput = previewSizes;
-form.addEventListener('reset', () => setTimeout(previewSizes));
+form.addEventListener('reset', () => setTimeout(() => { renderHeads(heads[0]); previewSizes(); }));

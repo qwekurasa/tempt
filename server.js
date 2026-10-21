@@ -125,6 +125,7 @@ function productFields(b) {
     sizes: S(b.sizes).split(',').map(s => s.trim().slice(0, 20)).filter(Boolean).slice(0, 30),
     description: S(b.description).slice(0, 5000),
     sizeTable: S(b.sizeTable).slice(0, 4000),
+    sizeHead: S(b.sizeHead).slice(0, 300),
     soldOut: b.soldOut === true,
     eta: S(b.eta).slice(0, 40),
     images: Array.isArray(b.images) ? b.images.filter(isImage).slice(0, 10) : [],
@@ -190,6 +191,8 @@ app.put('/api/settings', auth, serial(async (req, res) => {
   v.contact = contact;
   v.types = [...new Set((Array.isArray(req.body.types) ? req.body.types : []).map(t => S(t).slice(0, 40)).filter(Boolean))].slice(0, 200);
   if (!v.types.length) v.types = Shipping.TYPES;
+  v.sizeTemplates = (Array.isArray(req.body.sizeTemplates) ? req.body.sizeTemplates : []).map(t => S(t).slice(0, 300)).filter(Boolean).slice(0, 50);
+  if (!v.sizeTemplates.length) v.sizeTemplates = Shipping.SIZE_TEMPLATES;
   res.json(await saveSettings(v));
 }));
 

@@ -91,3 +91,26 @@ test('ADM-PHOTO порядок фото меняется стрелками', as
   await page.locator('#pf-photos [data-mv="2"][data-d="-1"]').click();
   expect(await srcs()).toEqual([before[1], before[2], before[0]]);
 });
+
+test('ST шаблон сетки в админке', async ({ page, request }) => {
+  await page.goto('/admin');
+  await page.getByLabel('Пароль').fill('e2e-pass');
+  await page.getByRole('button', { name: 'Войти' }).click();
+  const f = page.locator('#pf');
+  await f.getByLabel('Название').fill('ST TPL');
+  await f.getByLabel('Бренд').fill('STBRAND');
+  await f.getByLabel('Цена, ₽').fill('100');
+  await f.getByLabel('Шаблон размерной сетки').selectOption('Размер | Длина рукава | Длина');
+  await f.locator('textarea[name=sizeTable]').fill('S|48|49\nM|50|51');
+  await expect(page.locator('#st-preview th')).toHaveText(['Размер', 'Длина рукава', 'Длина']);
+  await f.locator('input[name=images]').setInputFiles([file('a.png', [1, 2, 3])]);
+  await page.locator('#pf-submit').click();
+  await expect(page.locator('#list .row').filter({ hasText: 'ST TPL' })).toHaveCount(1);
+  const p = (await (await request.get('/api/products')).json()).find(x => x.name === 'ST TPL');
+  await page.goto('/#/p/' + p.id);
+  await page.getByRole('button', { name: 'Размерная сетка' }).click();
+  await expect(page.locator('#p-st tbody tr')).toHaveCount(2);
+  await expect(page.locator('#p-st tbody tr').first().locator('td')).toHaveText(['S', '48', '49']);
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  await request.delete('/api/products/' + p.id);
+});

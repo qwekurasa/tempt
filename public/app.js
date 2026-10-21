@@ -139,7 +139,7 @@ function showProduct(id) {
   ].filter(x => x !== false && x !== undefined && x !== null).join('\n').trim();
   $('#p-info').hidden = true;
   $('#info-btn').setAttribute('aria-expanded', 'false');
-  const st = Shipping.sizeRows(current.sizeTable);
+  const st = Shipping.sizeGrid(current);
   $('#st-btn').hidden = st.length < 2;
   $('#p-st').hidden = true;
   $('#st-btn').setAttribute('aria-expanded', 'false');

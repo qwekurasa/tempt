@@ -21,7 +21,7 @@
   // Категории одежды по умолчанию; список редактируется в админке (Настройки)
   const TYPES = ['Футболки','Лонгсливы','Рубашки','Поло','Майки','Худи','Зип-худи','Свитшоты','Свитеры','Кардиганы','Жилеты','Куртки','Ветровки','Бомберы','Пуховики','Парки','Пальто','Тренчи','Джинсовые куртки','Кожаные куртки','Пиджаки','Джинсы','Брюки','Карго','Спортивные штаны','Шорты','Юбки','Платья','Костюмы','Комбинезоны','Кроссовки','Кеды','Ботинки','Туфли','Сандалии','Шлёпанцы','Кепки','Шапки','Панамы','Сумки','Рюкзаки','Ремни','Шарфы','Перчатки','Носки','Нижнее бельё','Очки','Украшения','Аксессуары'];
   const cat = c => (CATS[c] ? c : 'm');
-  const settings = s => ({ ...DEFAULTS, types: TYPES, ...s });
+  const settings = s => ({ ...DEFAULTS, types: TYPES, sizeTemplates: SIZE_TEMPLATES, ...s });
 
   // items: [{ price, qty, weight, cat }]. null — посчитать нельзя (нет курса или веса).
   function quote(items, s) {
@@ -47,7 +47,15 @@
   const sizeRows = t => String(t || '').split('\n').map(l => l.trim()).filter(l => l && !/^[-|:\s]+$/.test(l))
     .map(l => l.replace(/^\||\|$/g, '').split(/\s*\|\s*|\t/).map(c => c.trim()));
 
-  const api = { DEFAULTS, TYPES, CATS, sizeRows, cat, settings, quote };
+  // Шаблоны заголовков сетки (редактируются в админке); у товара хранится выбранный заголовок sizeHead
+  const SIZE_TEMPLATES = ['Размер | Длина рукава | Длина', 'Размер | Длина | Ширина груди | Длина рукава', 'Размер | Талия | Бёдра | Длина | Шаговый шов', 'Размер | Талия | Длина', 'EU | US | Длина стопы, см'];
+  // готовая таблица товара: [заголовок, ...строки]
+  const sizeGrid = p => {
+    const rows = sizeRows(p && p.sizeTable);
+    return p && p.sizeHead ? [sizeRows(p.sizeHead)[0] || [], ...rows] : rows;
+  };
+
+  const api = { DEFAULTS, TYPES, CATS, SIZE_TEMPLATES, sizeGrid, sizeRows, cat, settings, quote };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Shipping = api;
 })(this);

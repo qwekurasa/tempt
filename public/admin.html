@@ -92,6 +92,7 @@
     <div style="margin-top:12px">Доставка по Китаю, ¥ за 1 вещь</div>
     <div class="g2" id="cat-fees"></div>
     <label>Категории одежды — по одной в строке (порядок = порядок в фильтре)<textarea name="types" rows="10"></textarea></label>
+    <label>Шаблоны размерных сеток — по одному в строке, колонки через |<textarea name="sizeTemplates" rows="5"></textarea></label>
     <label>Ваш Telegram для связи с покупателями<input name="contact" placeholder="@username" maxlength="33"></label>
     <p class="note">Вес заказа считается от 1 кг. Тариф «от 10 кг» применяется, когда общий вес корзины 10 кг и больше.</p>
     <p class="err" id="rates-err"></p>
@@ -139,9 +140,10 @@
       <label>Размеры через запятую<input name="sizes" placeholder="S, M, L или 40, 41, 42"></label>
       <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="soldOut">Нет в наличии</label>
       <label>Описание<textarea name="description" rows="4"></textarea></label>
-      <label>Размерная сетка — столбцы через |, первая строка заголовок (можно вставить из Excel)<textarea name="sizeTable" rows="6" placeholder="Size | Length | 1/2 Chest | Sleeve
-S | 64 | 63 | 56
-M | 66 | 65 | 57"></textarea></label>
+      <label>Шаблон размерной сетки<select name="sizeHead" id="st-head"></select></label>
+      <label>Размерная сетка — по строке на размер, значения через |<textarea name="sizeTable" rows="5" placeholder="S | 48 | 66
+M | 49 | 68
+L | 50 | 70"></textarea></label>
       <div class="st-wrap" id="st-preview"></div>
       <label>Фото (до 10, первое — обложка)<input name="images" type="file" accept="image/*" multiple></label>
       <div class="photos" id="pf-photos"></div>
