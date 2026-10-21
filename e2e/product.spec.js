@@ -11,7 +11,7 @@ test('F01-H4 «+» → размер → в корзине', async ({ page }) => 
   await expect(page.locator('#cart-count')).toHaveText('');
   await expect(page.getByRole('button', { name: 'M', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'В корзину' }).click();
-  await expect(page.locator('#p-status')).toContainText('Добавлено · M');
+  await expect(page.locator('#p-status')).toContainText('Добавлено · KHAKI · M');
   await expect(page.locator('#cart-count')).toHaveText('1');
   await a11y(page);
 });
@@ -50,5 +50,24 @@ test('ST размерная сетка на странице товара', asyn
   await expect(page.locator('#p-st tbody tr').first().locator('td').last()).toHaveText('155–165');
   await page.goto('/#/p/demo-tee-1');
   await expect(page.getByRole('button', { name: 'Размерная сетка' })).toBeHidden();
+  await request.delete('/api/products/' + p.id);
+});
+
+test('COLOR выбор цвета у товара и в заказе', async ({ page, request }) => {
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  const p = await (await request.post('/api/products', { data: { name: 'COLOR TEST', brand: 'CBRAND', price: 100, sizes: 'M', color: 'black, cream white' } })).json();
+  expect(p.color).toBe('BLACK, CREAM WHITE');
+  await page.goto('/#/p/' + p.id);
+  await page.getByRole('button', { name: 'Выбрать размер' }).click();
+  await expect(page.locator('#buy-title')).toHaveText('Выберите цвет и размер');
+  await page.locator('#sizes').getByRole('button', { name: 'M', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'В корзину' })).toBeDisabled();
+  await page.locator('#colors').getByRole('button', { name: 'CREAM WHITE' }).click();
+  await page.getByRole('button', { name: 'В корзину' }).click();
+  await expect(page.locator('#p-status')).toContainText('CREAM WHITE');
+  await page.goto('/#/cart');
+  await expect(page.locator('.co-line').filter({ hasText: 'COLOR TEST' })).toContainText('Цвет CREAM WHITE');
+  const bad = await request.post('/api/order', { data: { items: [{ id: p.id, size: 'M', color: 'RED', qty: 1 }] } });
+  expect(bad.status()).toBe(400);
   await request.delete('/api/products/' + p.id);
 });

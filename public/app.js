@@ -41,7 +41,7 @@ const uniq = arr => [...new Set(arr.filter(Boolean))];
 const GROUPS = [
   ['type', 'Категория', () => { const order = Shipping.settings(settings).types; return uniq(products.flatMap(kindsOf)).sort((a, b) => (order.indexOf(a) + 1 || 999) - (order.indexOf(b) + 1 || 999)); }],
   ['brand', 'Бренды', () => uniq(products.map(p => p.brand)).sort()],
-  ['color', 'Цвет', () => uniq(products.map(p => p.color)).sort()],
+  ['color', 'Цвет', () => uniq(products.flatMap(Shipping.colorsOf)).sort()],
   ['size', 'Размер', () => uniq(products.flatMap(p => p.sizes))],
 ];
 const oneBrand = () => (sel.brand.size === 1 ? [...sel.brand][0] : '');
@@ -68,7 +68,7 @@ function renderFilters() {
 
 function renderGrid() {
   const match = (key, v) => !sel[key].size || [].concat(v).some(x => sel[key].has(x));
-  const list = products.filter(p => match('type', kindsOf(p)) && match('brand', p.brand) && match('color', p.color || '') && match('size', p.sizes));
+  const list = products.filter(p => match('type', kindsOf(p)) && match('brand', p.brand) && match('color', Shipping.colorsOf(p)) && match('size', p.sizes));
   if (sort !== 'new') list.sort((a, b) => (sort === 'asc' ? a.price - b.price : b.price - a.price));
   const n = list.length;
   $('#count').textContent = `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'товар' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'товара' : 'товаров'}`;
@@ -90,22 +90,29 @@ function showHome() {
 }
 
 // --- товар ---
-let size = null;
+let size = null, color = null;
+const pickTitle = () => {
+  const need = [Shipping.colorsOf(current).length > 1 && color === null && 'цвет', current.sizes.length && size === null && 'размер'].filter(Boolean);
+  $('#buy-title').textContent = need.length ? 'Выберите ' + need.join(' и ') : [color, size && 'Размер ' + size].filter(Boolean).join(' · ') || 'Добавить в корзину';
+  $('#add').disabled = need.length > 0;
+};
 function setBuy(open) {
   $('#buy-closed').hidden = open;
   $('#buy-open').hidden = !open;
+  const cs = Shipping.colorsOf(current);
   size = current.sizes.length ? null : '';
+  color = cs.length > 1 ? null : cs[0] || '';
   $('#sizes').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false'));
-  $('#buy-title').textContent = current.sizes.length ? 'Выберите размер' : 'Добавить в корзину';
-  $('#add').disabled = size === null;
+  $('#colors').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+  pickTitle();
 }
 
-function addToCart(size) {
-  const l = cart.find(l => l.id === current.id && l.size === size);
-  l ? (l.qty = Math.min(20, l.qty + 1)) : cart.push({ id: current.id, size, qty: 1 });
+function addToCart(size, color) {
+  const l = cart.find(l => l.id === current.id && l.size === size && (l.color || '') === color);
+  l ? (l.qty = Math.min(20, l.qty + 1)) : cart.push({ id: current.id, size, color, qty: 1 });
   saveCart();
   renderCart();
-  $('#p-status').innerHTML = `Добавлено${size ? ' · ' + esc(size) : ''} · <a href="#/cart">Корзина</a>`;
+  $('#p-status').innerHTML = `Добавлено${color ? ' · ' + esc(color) : ''}${size ? ' · ' + esc(size) : ''} · <a href="#/cart">Корзина</a>`;
 }
 
 function showProduct(id) {
@@ -127,6 +134,9 @@ function showProduct(id) {
     ? 'Нет в наличии'
     : ship ? `Примерная стоимость доставки до РФ: ~${rub(ship)}` : current.eta ? `Срок доставки: ${current.eta}` : '';
   $('#sizes').innerHTML = current.sizes.map(s => `<button data-s="${esc(s)}">${esc(s)}</button>`).join('');
+  const cs = Shipping.colorsOf(current);
+  $('#colors').hidden = cs.length < 2;
+  $('#colors').innerHTML = cs.map(c => `<button data-c="${esc(c)}">${esc(c)}</button>`).join('');
   $('#buy-title').textContent = 'Выберите размер';
   $('#p-info').textContent = [
     current.description,
@@ -220,7 +230,7 @@ function renderCart() {
   document.querySelector('.bag').setAttribute('aria-label', `Корзина ${count}`);
   $('#cart-count2').textContent = count;
   $('#lines').innerHTML = lines.length
-    ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${[l.size && 'Размер ' + esc(l.size), l.p.eta && 'Срок ' + esc(l.p.eta)].filter(Boolean).join(' · ')}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div class="co-sum-col">${rub(l.p.price * l.qty)}<div class="mute">+ ${q.lines[i].chinaCny} ¥${q.lines[i].china !== null ? ` ≈ ${rub(q.lines[i].china)}` : ''}</div></div></div>`).join('')
+    ? lines.map((l, i) => `<div class="co-line"><div class="ph">${img(l.p.images[0])}</div><div><div>${esc(l.p.brand)} — ${esc(l.p.name)}</div><div class="mute">${[l.color && 'Цвет ' + esc(l.color), l.size && 'Размер ' + esc(l.size), l.p.eta && 'Срок ' + esc(l.p.eta)].filter(Boolean).join(' · ')}</div><div class="qty"><button type="button" data-i="${i}" data-d="-1">−</button>${l.qty}<button type="button" data-i="${i}" data-d="1">+</button></div></div><div class="co-sum-col">${rub(l.p.price * l.qty)}<div class="mute">+ ${q.lines[i].chinaCny} ¥${q.lines[i].china !== null ? ` ≈ ${rub(q.lines[i].china)}` : ''}</div></div></div>`).join('')
     : '<p class="co-empty">Корзина пуста<br><a class="co-link" href="#/">Перейти в каталог</a></p>';
   const or = v => (v === null ? '—' : rub(v));
   $('#subtotal').textContent = rub(q.goods);
@@ -340,12 +350,18 @@ $('#sizes').onclick = e => {
   if (!b) return;
   size = b.dataset.s;
   $('#sizes').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  $('#buy-title').textContent = 'Размер ' + size;
-  $('#add').disabled = false;
+  pickTitle();
+};
+$('#colors').onclick = e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  color = b.dataset.c;
+  $('#colors').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  pickTitle();
 };
 $('#add').onclick = () => {
-  if (size === null) return;
-  addToCart(size);
+  if (size === null || color === null) return;
+  addToCart(size, color);
 };
 $('#st-btn').onclick = () => {
   const open = $('#p-st').hidden;

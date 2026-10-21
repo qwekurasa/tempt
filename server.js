@@ -117,7 +117,7 @@ function productFields(b) {
   const p = {
     name: S(b.name).slice(0, 120),
     brand: S(b.brand).toUpperCase().slice(0, 60),
-    color: S(b.color).toUpperCase().slice(0, 60),
+    color: S(b.color).toUpperCase().split(',').map(c => c.trim()).filter(Boolean).slice(0, 20).join(', ').slice(0, 300),
     cat: Shipping.cat(b.cat),
     kinds: [...new Set((Array.isArray(b.kinds) ? b.kinds : [b.type]).map(t => S(t).slice(0, 40)).filter(Boolean))].slice(0, 20),
     weight: Math.min(Math.max(Math.round(Number(b.weight) * 100) / 100 || 0, 0), 100),
@@ -350,16 +350,17 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
   for (const it of items) {
     const p = products.find(x => x.id === it.id);
     const qty = Math.floor(Number(it.qty));
-    const size = S(it.size);
-    if (!p || !(qty >= 1 && qty <= 20) || (p.sizes.length ? !p.sizes.includes(size) : size)) {
+    const size = S(it.size), color = S(it.color);
+    const colors = Shipping.colorsOf(p || {});
+    if (!p || !(qty >= 1 && qty <= 20) || (p.sizes.length ? !p.sizes.includes(size) : size) || (colors.length > 1 ? !colors.includes(color) : color && !colors.includes(color))) {
       return res.status(400).json({ error: 'Корзина устарела, обновите страницу' });
     }
     if (p.soldOut) return res.status(400).json({ error: `Товар закончился: ${p.name}` });
     qitems.push({ price: p.price, qty, weight: p.weight, cat: p.cat });
-    lines.push({ p, size, qty });
+    lines.push({ p, size, color: colors.length > 1 ? color : colors[0] || '', qty });
   }
   const q = Shipping.quote(qitems, await loadSettings());
-  lines.forEach((l, i) => (lines[i] = `${i + 1}. ${l.p.sku ? `[${l.p.sku}] ` : ''}${l.p.brand} — ${l.p.name}${l.size ? ' · ' + l.size : ''} × ${l.qty} = ${rub(l.p.price * l.qty)} + ${q.lines[i].chinaCny} ¥ по Китаю${l.p.eta ? `, срок ${l.p.eta}` : ''}`));
+  lines.forEach((l, i) => (lines[i] = `${i + 1}. ${l.p.sku ? `[${l.p.sku}] ` : ''}${l.p.brand} — ${l.p.name}${l.color ? ' · ' + l.color : ''}${l.size ? ' · ' + l.size : ''} × ${l.qty} = ${rub(l.p.price * l.qty)} + ${q.lines[i].chinaCny} ¥ по Китаю${l.p.eta ? `, срок ${l.p.eta}` : ''}`));
   const or = (v, alt) => (v === null ? alt : rub(v));
   if (!lines.length) return res.status(400).json({ error: 'Корзина пуста' });
   if (!BOT_TOKEN || !CHAT_ID) return res.status(500).json({ error: 'Приём заказов не настроен' });

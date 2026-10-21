@@ -55,7 +55,10 @@
     return p && p.sizeHead ? [sizeRows(p.sizeHead)[0] || [], ...rows] : rows;
   };
 
-  const api = { DEFAULTS, TYPES, CATS, SIZE_TEMPLATES, sizeGrid, sizeRows, cat, settings, quote };
+  // цвета товара: из списка через запятую
+  const colorsOf = p => (p && p.color ? String(p.color).split(',').map(c => c.trim()).filter(Boolean) : []);
+
+  const api = { DEFAULTS, TYPES, CATS, colorsOf, SIZE_TEMPLATES, sizeGrid, sizeRows, cat, settings, quote };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Shipping = api;
 })(this);
