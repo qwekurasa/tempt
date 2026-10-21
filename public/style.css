@@ -104,7 +104,7 @@ html:not([data-theme=dark]) .logo img{opacity:.88}
 .dots{display:flex;gap:6px;height:20px;align-items:center}
 .dots button{width:5px;height:5px;border-radius:50%;background:#cfcfcf}
 .dots button.on{background:var(--text)}
-.buy{width:min(560px,100%);padding:4px 16px 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.buy{width:min(560px,100%);padding:28px 16px 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
 .buy-closed,.buy-open{width:100%;display:flex;flex-direction:column;align-items:center;gap:14px}
 .plus{width:32px;height:32px;font-size:22px;line-height:1}
 .buy-head{width:100%;display:grid;grid-template-columns:32px 1fr 32px;align-items:center}
