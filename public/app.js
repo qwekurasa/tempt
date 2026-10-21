@@ -2,7 +2,13 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rub = n => n.toLocaleString('ru-RU') + ' ₽';
 const rubUsd = n => rub(n) + (settings.usd > 0 ? ' · $' + Math.round(n / settings.usd).toLocaleString('ru-RU') : '');
-const img = src => (src ? `<img src="${esc(src)}" alt="" loading="lazy">` : '');
+// Фото из хранилища отдаются через оптимизатор Vercel: уменьшенные, в WebP/AVIF. Оригинал — в полноэкранном просмотре.
+const opt = (u, w) => `/_vercel/image?url=${encodeURIComponent(u)}&w=${w}&q=80`;
+const img = src => {
+  if (!src) return '';
+  if (!/\.public\.blob\.vercel-storage\.com\//.test(src)) return `<img src="${esc(src)}" alt="" loading="lazy">`;
+  return `<img src="${esc(opt(src, 640))}" srcset="${esc(opt(src, 384))} 384w, ${esc(opt(src, 640))} 640w, ${esc(opt(src, 1080))} 1080w" sizes="(max-width:800px) 50vw, 25vw" alt="" loading="lazy" onerror="this.onerror=null;this.removeAttribute('srcset');this.src='${esc(src)}'">`;
+};
 const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch {} };
 
 let products = [];
