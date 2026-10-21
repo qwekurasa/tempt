@@ -61,11 +61,14 @@ test('F01-H6 сортировка по цене', async ({ page }) => {
 test('CAT категория одежды: фильтр в каталоге', async ({ page, request }, info) => {
   test.skip(info.project.name === 'mobile');
   await request.post('/api/login', { data: { password: 'e2e-pass' } });
-  const p = await (await request.post('/api/products', { data: { name: 'TYPE TEST', brand: 'TYPEBRAND', price: 10, type: 'Ветровки' } })).json();
-  expect(p.type).toBe('Ветровки');
+  const p = await (await request.post('/api/products', { data: { name: 'TYPE TEST', brand: 'TYPEBRAND', price: 10, kinds: ['Ветровки', 'Куртки'] } })).json();
+  expect(p.kinds).toEqual(['Ветровки', 'Куртки']);
   await page.goto('/');
   await page.locator('#filters').getByLabel('Ветровки').check();
   await expect(page.locator('#grid .item')).toHaveCount(1);
+  await expect(page.locator('#grid .item')).toContainText('TYPE TEST');
+  await page.locator('#filters').getByLabel('Ветровки').uncheck();
+  await page.locator('#filters').getByLabel('Куртки').check();
   await expect(page.locator('#grid .item')).toContainText('TYPE TEST');
   await request.delete('/api/products/' + p.id);
 });

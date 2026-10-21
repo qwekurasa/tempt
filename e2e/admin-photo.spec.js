@@ -20,12 +20,15 @@ test('ADM-PHOTO добавление, замена фото и дубликат'
   await f.getByLabel('Название').fill('PHOTO TEST');
   await f.getByLabel('Бренд').fill('PHOTOBRAND');
   await f.getByLabel('Цена, ₽').fill('1000');
+  await f.locator('#type-select').getByLabel('Худи', { exact: true }).check();
+  await f.locator('#type-select').getByLabel('Куртки', { exact: true }).check();
   await f.locator('input[name=images]').setInputFiles([file('a.png', [255, 0, 0]), file('b.png', [0, 255, 0])]);
   await page.locator('#pf-submit').click();
   const row = page.locator('#list .row').filter({ hasText: 'PHOTO TEST' });
   await expect(row).toHaveCount(1);
   let p = (await (await request.get('/api/products')).json()).find(x => x.name === 'PHOTO TEST');
   expect(p.images).toHaveLength(2);
+  expect(p.kinds).toEqual(['Худи', 'Куртки']);
   for (const u of p.images) expect((await request.get(u)).status()).toBe(200);
 
   // дубликат, затем у копии меняем фото — у оригинала фото остаются

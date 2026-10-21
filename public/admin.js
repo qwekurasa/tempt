@@ -5,9 +5,12 @@ const form = $('#pf');
 let products = [];
 // категории одежды: список из настроек + уже использованные
 let types = Shipping.TYPES;
-function renderTypes(current = '') {
-  const list = [...new Set([...types, ...products.map(p => p.type).filter(Boolean)])];
-  $('#type-select').innerHTML = '<option value="">— без категории —</option>' + list.map(t => `<option${t === current ? ' selected' : ''}>${esc(t)}</option>`).join('');
+const kindsOf = p => p.kinds || (p.type ? [p.type] : []);
+const checkedKinds = () => [...$('#type-select').querySelectorAll('input:checked')].map(i => i.value);
+function renderTypes(current = []) {
+  const list = [...new Set([...types, ...products.flatMap(kindsOf)])];
+  const on = new Set(current);
+  $('#type-select').innerHTML = list.map(t => `<label class="kind"><input type="checkbox" value="${esc(t)}"${on.has(t) ? ' checked' : ''}>${esc(t)}</label>`).join('');
 }
 
 // изменения каталога/постов/настроек отправляются строго по очереди, чтобы не перезаписать друг друга
@@ -63,7 +66,7 @@ function renderRows() {
     <div class="row${p.id === flashId ? ' flash' : ''}" data-row="${esc(p.id)}">
       <input type="checkbox" class="sel" data-sel="${esc(p.id)}"${selected.has(p.id) ? ' checked' : ''} aria-label="Выбрать">
       <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
-      <div><div>${p.sku ? `<span class="mute">${esc(p.sku)}</span> · ` : ''}${esc(p.name)}</div><div class="mute">${p.type ? esc(p.type) + ' · ' : ''}${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
+      <div><div>${p.sku ? `<span class="mute">${esc(p.sku)}</span> · ` : ''}${esc(p.name)}</div><div class="mute">${kindsOf(p).length ? esc(kindsOf(p).join(', ')) + ' · ' : ''}${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
       <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-dup="${esc(p.id)}">Дублировать</button><button data-del="${esc(p.id)}">Удалить</button></div>
     </div>`).join('') : '<p class="mute" style="padding:16px 0">Ничего не найдено</p>';
   updateBulk();
@@ -200,7 +203,7 @@ form.onsubmit = async e => {
       }
     }
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, type: form.type.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, kinds: checkedKinds(), weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
     const saved = await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -243,7 +246,7 @@ $('#rates').onsubmit = async e => {
     const body = Object.fromEntries([...Object.keys(Shipping.DEFAULTS), 'contact'].map(k => [k, f[k].value]));
     body.types = f.types.value.split('\n').map(t => t.trim()).filter(Boolean);
     types = body.types.length ? body.types : Shipping.TYPES;
-    renderTypes(form.type.value);
+    renderTypes(checkedKinds());
     await api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     $('#rates-submit').textContent = 'Сохранено ✓';
     setTimeout(() => ($('#rates-submit').textContent = 'Сохранить настройки'), 1500);
@@ -263,7 +266,7 @@ function fillForm(p) {
   form.sku.value = p.sku || '';
   form.weight.value = p.weight || '';
   form.cat.value = Shipping.cat(p.cat);
-  renderTypes(p.type);
+  renderTypes(kindsOf(p));
   form.eta.value = p.eta || '';
   form.soldOut.checked = !!p.soldOut;
   form.price.value = p.price;
