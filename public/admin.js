@@ -3,6 +3,12 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const rub = n => n.toLocaleString('ru-RU') + ' ₽';
 const form = $('#pf');
 let products = [];
+// категории одежды: список из настроек + уже использованные
+let types = Shipping.TYPES;
+function renderTypes(current = '') {
+  const list = [...new Set([...types, ...products.map(p => p.type).filter(Boolean)])];
+  $('#type-select').innerHTML = '<option value="">— без категории —</option>' + list.map(t => `<option${t === current ? ' selected' : ''}>${esc(t)}</option>`).join('');
+}
 
 // изменения каталога/постов/настроек отправляются строго по очереди, чтобы не перезаписать друг друга
 let queue = Promise.resolve();
@@ -30,8 +36,11 @@ async function showPanel() {
   $('#panel').hidden = false;
   const [list, rates] = await Promise.all([api('/api/products?fresh'), api('/api/settings?fresh')]);
   products = list;
-  for (const [k, v] of Object.entries(rates)) if ($('#rates')[k]) $('#rates')[k].value = v || '';
+  for (const [k, v] of Object.entries(rates)) if ($('#rates')[k] && k !== 'types') $('#rates')[k].value = v || '';
+  types = rates.types?.length ? rates.types : Shipping.TYPES;
+  $('#rates').types.value = types.join('\n');
   renderList();
+  renderTypes();
 }
 
 let flashId = null;
@@ -54,7 +63,7 @@ function renderRows() {
     <div class="row${p.id === flashId ? ' flash' : ''}" data-row="${esc(p.id)}">
       <input type="checkbox" class="sel" data-sel="${esc(p.id)}"${selected.has(p.id) ? ' checked' : ''} aria-label="Выбрать">
       <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
-      <div><div>${p.sku ? `<span class="mute">${esc(p.sku)}</span> · ` : ''}${esc(p.name)}</div><div class="mute">${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
+      <div><div>${p.sku ? `<span class="mute">${esc(p.sku)}</span> · ` : ''}${esc(p.name)}</div><div class="mute">${p.type ? esc(p.type) + ' · ' : ''}${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
       <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-dup="${esc(p.id)}">Дублировать</button><button data-del="${esc(p.id)}">Удалить</button></div>
     </div>`).join('') : '<p class="mute" style="padding:16px 0">Ничего не найдено</p>';
   updateBulk();
@@ -92,6 +101,7 @@ $('#bulk-del').onclick = async () => {
 function resetForm() {
   form.reset();
   form.id.value = '';
+  renderTypes();
   form.images.required = true;
   $('#pf-title').textContent = 'Новый товар';
   $('#pf-submit').textContent = 'Добавить';
@@ -190,7 +200,7 @@ form.onsubmit = async e => {
       }
     }
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, type: form.type.value, weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
     const saved = await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -231,6 +241,9 @@ $('#rates').onsubmit = async e => {
   $('#rates-submit').disabled = true;
   try {
     const body = Object.fromEntries([...Object.keys(Shipping.DEFAULTS), 'contact'].map(k => [k, f[k].value]));
+    body.types = f.types.value.split('\n').map(t => t.trim()).filter(Boolean);
+    types = body.types.length ? body.types : Shipping.TYPES;
+    renderTypes(form.type.value);
     await api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     $('#rates-submit').textContent = 'Сохранено ✓';
     setTimeout(() => ($('#rates-submit').textContent = 'Сохранить настройки'), 1500);
@@ -250,6 +263,7 @@ function fillForm(p) {
   form.sku.value = p.sku || '';
   form.weight.value = p.weight || '';
   form.cat.value = Shipping.cat(p.cat);
+  renderTypes(p.type);
   form.eta.value = p.eta || '';
   form.soldOut.checked = !!p.soldOut;
   form.price.value = p.price;
@@ -401,3 +415,4 @@ $('#post-list').onclick = async e => {
 
 resetForm();
 fetch('/api/me').then(r => (r.ok ? showPanel() : showLogin()));
+

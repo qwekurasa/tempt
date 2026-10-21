@@ -18,8 +18,10 @@
     l: 'Худи, свитшоты, штаны',
     xl: 'Обувь, куртки, крупное',
   };
+  // Категории одежды по умолчанию; список редактируется в админке (Настройки)
+  const TYPES = ['Футболки','Лонгсливы','Рубашки','Поло','Майки','Худи','Зип-худи','Свитшоты','Свитеры','Кардиганы','Жилеты','Куртки','Ветровки','Бомберы','Пуховики','Парки','Пальто','Тренчи','Джинсовые куртки','Кожаные куртки','Пиджаки','Джинсы','Брюки','Карго','Спортивные штаны','Шорты','Юбки','Платья','Костюмы','Комбинезоны','Кроссовки','Кеды','Ботинки','Туфли','Сандалии','Шлёпанцы','Кепки','Шапки','Панамы','Сумки','Рюкзаки','Ремни','Шарфы','Перчатки','Носки','Нижнее бельё','Очки','Украшения','Аксессуары'];
   const cat = c => (CATS[c] ? c : 'm');
-  const settings = s => ({ ...DEFAULTS, ...s });
+  const settings = s => ({ ...DEFAULTS, types: TYPES, ...s });
 
   // items: [{ price, qty, weight, cat }]. null — посчитать нельзя (нет курса или веса).
   function quote(items, s) {
@@ -41,7 +43,7 @@
     return { lines, goods, chinaCny, china, intl, tk, weight, kg, rate, total: goods + (china || 0) + (intl || 0) + tk, complete };
   }
 
-  const api = { DEFAULTS, CATS, cat, settings, quote };
+  const api = { DEFAULTS, TYPES, CATS, cat, settings, quote };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Shipping = api;
 })(this);

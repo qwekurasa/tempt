@@ -119,6 +119,7 @@ function productFields(b) {
     brand: S(b.brand).toUpperCase().slice(0, 60),
     color: S(b.color).toUpperCase().slice(0, 60),
     cat: Shipping.cat(b.cat),
+    type: S(b.type).slice(0, 40),
     weight: Math.min(Math.max(Math.round(Number(b.weight) * 100) / 100 || 0, 0), 100),
     price: Math.round(Number(b.price)),
     sizes: S(b.sizes).split(',').map(s => s.trim().slice(0, 20)).filter(Boolean).slice(0, 30),
@@ -186,6 +187,8 @@ app.put('/api/settings', auth, serial(async (req, res) => {
   const contact = S(req.body.contact).replace(/^@/, '');
   if (contact && !/^[A-Za-z0-9_]{5,32}$/.test(contact)) return res.status(400).json({ error: 'Некорректный Telegram для связи' });
   v.contact = contact;
+  v.types = [...new Set((Array.isArray(req.body.types) ? req.body.types : []).map(t => S(t).slice(0, 40)).filter(Boolean))].slice(0, 200);
+  if (!v.types.length) v.types = Shipping.TYPES;
   res.json(await saveSettings(v));
 }));
 

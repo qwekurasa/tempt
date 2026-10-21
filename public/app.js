@@ -6,7 +6,7 @@ const img = src => (src ? `<img src="${esc(src)}" alt="" loading="lazy">` : '');
 const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch {} };
 
 let products = [];
-const sel = { brand: new Set(), color: new Set(), size: new Set() };
+const sel = { type: new Set(), brand: new Set(), color: new Set(), size: new Set() };
 let sort = 'new';
 let current = null;
 let homeScroll = 0;
@@ -32,6 +32,7 @@ function view(name) {
 // --- каталог ---
 const uniq = arr => [...new Set(arr.filter(Boolean))];
 const GROUPS = [
+  ['type', 'Категория', () => { const order = Shipping.settings(settings).types; return uniq(products.map(p => p.type)).sort((a, b) => (order.indexOf(a) + 1 || 999) - (order.indexOf(b) + 1 || 999)); }],
   ['brand', 'Бренды', () => uniq(products.map(p => p.brand)).sort()],
   ['color', 'Цвет', () => uniq(products.map(p => p.color)).sort()],
   ['size', 'Размер', () => uniq(products.flatMap(p => p.sizes))],
@@ -60,7 +61,7 @@ function renderFilters() {
 
 function renderGrid() {
   const match = (key, v) => !sel[key].size || [].concat(v).some(x => sel[key].has(x));
-  const list = products.filter(p => match('brand', p.brand) && match('color', p.color || '') && match('size', p.sizes));
+  const list = products.filter(p => match('type', p.type || '') && match('brand', p.brand) && match('color', p.color || '') && match('size', p.sizes));
   if (sort !== 'new') list.sort((a, b) => (sort === 'asc' ? a.price - b.price : b.price - a.price));
   const n = list.length;
   $('#count').textContent = `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'товар' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'товара' : 'товаров'}`;
@@ -123,6 +124,7 @@ function showProduct(id) {
   $('#p-info').textContent = [
     current.description,
     '',
+    current.type && 'Категория: ' + current.type,
     'Бренд: ' + current.brand,
     current.color && 'Цвет: ' + current.color,
     current.sizes.length && 'Размеры: ' + current.sizes.join(', '),
