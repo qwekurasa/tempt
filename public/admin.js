@@ -3,6 +3,8 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const rub = n => n.toLocaleString('ru-RU') + ' ₽';
 const form = $('#pf');
 let products = [];
+// превью в админке — уменьшенные через оптимизатор Vercel, а не оригиналы
+const thumb = u => (/\.public\.blob\.vercel-storage\.com\//.test(u) ? `/_vercel/image?url=${encodeURIComponent(u)}&w=384&q=70` : u);
 // категории одежды: список из настроек + уже использованные
 let types = Shipping.TYPES;
 const kindsOf = p => p.kinds || (p.type ? [p.type] : []);
@@ -68,7 +70,7 @@ function renderRows() {
   $('#list').innerHTML = list.length ? list.map(p => `
     <div class="row${p.id === flashId ? ' flash' : ''}" data-row="${esc(p.id)}">
       <input type="checkbox" class="sel" data-sel="${esc(p.id)}"${selected.has(p.id) ? ' checked' : ''} aria-label="Выбрать">
-      <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
+      <div class="ph">${p.images[0] ? `<img src="${esc(thumb(p.images[0]))}" alt="" loading="lazy">` : ''}</div>
       <div><div>${p.sku ? `<span class="mute">${esc(p.sku)}</span> · ` : ''}${esc(p.name)}</div><div class="mute">${kindsOf(p).length ? esc(kindsOf(p).join(', ')) + ' · ' : ''}${esc(p.brand)} · ${rub(p.price)}${p.sizes.length ? ' · ' + esc(p.sizes.join(', ')) : ''}${p.weight ? ' · ' + p.weight + ' кг' : ''}${p.soldOut ? ' · нет в наличии' : ''}</div></div>
       <div class="actions"><button data-edit="${esc(p.id)}">Изменить</button><button data-dup="${esc(p.id)}">Дублировать</button><button data-del="${esc(p.id)}">Удалить</button></div>
     </div>`).join('') : '<p class="mute" style="padding:16px 0">Ничего не найдено</p>';
@@ -192,7 +194,7 @@ async function uploadImage(f) {
 function photoList(input, box) {
   let items = []; // { url } — уже загруженные, { file, src } — новые
   const render = () => {
-    box.innerHTML = items.map((it, i) => `<div class="pthumb" draggable="true" data-i="${i}"><img src="${esc(it.url || it.src)}" alt="" draggable="false"><button type="button" data-rm="${i}" aria-label="Убрать фото">×</button>${i ? `<button type="button" data-first="${i}" aria-label="Сделать обложкой">★</button>` : '<span class="cover">обложка</span>'}<span class="pmove">${i ? `<button type="button" data-mv="${i}" data-d="-1" aria-label="Левее">‹</button>` : '<i></i>'}${i < items.length - 1 ? `<button type="button" data-mv="${i}" data-d="1" aria-label="Правее">›</button>` : ''}</span></div>`).join('');
+    box.innerHTML = items.map((it, i) => `<div class="pthumb" draggable="true" data-i="${i}"><img src="${esc(it.src || thumb(it.url))}" alt="" draggable="false"><button type="button" data-rm="${i}" aria-label="Убрать фото">×</button>${i ? `<button type="button" data-first="${i}" aria-label="Сделать обложкой">★</button>` : '<span class="cover">обложка</span>'}<span class="pmove">${i ? `<button type="button" data-mv="${i}" data-d="-1" aria-label="Левее">‹</button>` : '<i></i>'}${i < items.length - 1 ? `<button type="button" data-mv="${i}" data-d="1" aria-label="Правее">›</button>` : ''}</span></div>`).join('');
   };
   input.required = false;
   input.onchange = () => {
@@ -225,11 +227,16 @@ function photoList(input, box) {
     async upload(progress) {
       const todo = items.filter(it => it.file).length;
       let n = 0;
-      for (const it of items) if (it.file) {
-        progress(`Загрузка фото ${++n}/${todo}`);
-        it.url = await uploadImage(it.file);
-        delete it.file;
-      }
+      const queue = items.filter(it => it.file);
+      progress(`Загрузка фото 0/${todo}`);
+      // по 3 файла параллельно
+      await Promise.all([0, 1, 2].map(async () => {
+        for (let it; (it = queue.shift()); ) {
+          it.url = await uploadImage(it.file);
+          delete it.file;
+          progress(`Загрузка фото ${++n}/${todo}`);
+        }
+      }));
       return items.map(it => it.url);
     },
   };
@@ -385,7 +392,7 @@ function renderPosts() {
   $('#post-count').textContent = posts.length;
   $('#post-list').innerHTML = posts.map(p => `
     <div class="row">
-      <div class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</div>
+      <div class="ph">${p.images[0] ? `<img src="${esc(thumb(p.images[0]))}" alt="" loading="lazy">` : ''}</div>
       <div><div>${esc(p.title || (p.text || '').slice(0, 60) || 'Без текста')}</div><div class="mute">${postDate(p.createdAt)}${p.tag ? ' · ' + esc(p.tag) : ''} · ${p.images.length} фото</div></div>
       <div class="actions"><button data-pedit="${esc(p.id)}">Изменить</button><button data-pdel="${esc(p.id)}">Удалить</button></div>
     </div>`).join('') || '<p class="mute" style="padding:16px 0">Постов пока нет</p>';
@@ -405,7 +412,7 @@ function renderPick() {
   const q = $('#pick-search').value.trim().toLowerCase();
   const list = products.filter(p => pick.has(p.id) || !q || [p.sku, p.name, p.brand].join(' ').toLowerCase().includes(q))
     .sort((a, b) => pick.has(b.id) - pick.has(a.id)).slice(0, 60);
-  $('#pick').innerHTML = list.map(p => `<label class="pick-row"><input type="checkbox" value="${esc(p.id)}"${pick.has(p.id) ? ' checked' : ''}><span class="ph">${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : ''}</span><span>${esc(p.sku || '')} · ${esc(p.name)}</span></label>`).join('') || '<p class="mute">Ничего не найдено</p>';
+  $('#pick').innerHTML = list.map(p => `<label class="pick-row"><input type="checkbox" value="${esc(p.id)}"${pick.has(p.id) ? ' checked' : ''}><span class="ph">${p.images[0] ? `<img src="${esc(thumb(p.images[0]))}" alt="" loading="lazy">` : ''}</span><span>${esc(p.sku || '')} · ${esc(p.name)}</span></label>`).join('') || '<p class="mute">Ничего не найдено</p>';
   $('#pick-count').textContent = pick.size;
 }
 $('#pick-search').oninput = renderPick;
