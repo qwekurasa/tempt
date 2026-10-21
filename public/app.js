@@ -84,7 +84,7 @@ function refresh() {
 
 function showHome() {
   const fromProduct = view('home');
-  document.title = oneBrand() ? `${oneBrand()} — TEMPT` : 'TEMPT';
+  document.title = oneBrand() ? `${oneBrand()} — tempt` : 'tempt';
   refresh();
   scrollTo(0, fromProduct ? homeScroll : 0);
 }
@@ -112,7 +112,7 @@ function showProduct(id) {
   current = products.find(p => p.id === id);
   if (!current) return (location.hash = '#/');
   view('product');
-  document.title = `${current.name} — TEMPT`;
+  document.title = `${current.name} — tempt`;
   $('#gallery').innerHTML = current.images.map(img).join('');
   $('#gallery').scrollLeft = 0;
   $('#lightbox').hidden = true;
@@ -159,7 +159,7 @@ const postProducts = ids => {
 };
 async function showForum() {
   view('forum');
-  document.title = 'Форум — TEMPT';
+  document.title = 'Форум — tempt';
   scrollTo(0, 0);
   if (!posts) {
     $('#posts').innerHTML = '<p class="empty">Загрузка…</p>';
@@ -237,7 +237,7 @@ function renderCart() {
 
 function showCart() {
   view('cartpage');
-  document.title = 'Корзина — TEMPT';
+  document.title = 'Корзина — tempt';
   $('#co-main').hidden = false;
   $('#done').hidden = true;
   renderCart();
@@ -254,7 +254,7 @@ function route() {
   if (location.hash === '#/about' || location.hash === '#/delivery') {
     const page = location.hash.slice(2);
     view(page);
-    document.title = (page === 'about' ? 'О проекте' : 'Доставка') + ' — TEMPT';
+    document.title = (page === 'about' ? 'О проекте' : 'Доставка') + ' — tempt';
     if (page === 'delivery') renderDelivery();
     return scrollTo(0, 0);
   }
