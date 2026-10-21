@@ -145,3 +145,43 @@ test('BULK массовое добавление: папка с подпапка
   await request.post('/api/login', { data: { password: 'e2e-pass' } });
   await request.post('/api/products/delete', { data: { ids: made.map(p => p.id) } });
 });
+
+test('XL шаблон Excel: скачивание и импорт с папкой фото', async ({ page, request }, info) => {
+  test.skip(info.project.name === 'mobile');
+  const XLSX = require('xlsx'), fs = require('fs'), os = require('os'), path = require('path');
+  await page.goto('/admin');
+  await page.getByLabel('Пароль').fill('e2e-pass');
+  await page.getByRole('button', { name: 'Войти' }).click();
+  await page.getByRole('button', { name: 'Массово' }).click();
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#xl-template').click()]);
+  const tpl = XLSX.readFile(await dl.path());
+  expect(tpl.SheetNames).toEqual(['Товары', 'Подсказки']);
+  const head = XLSX.utils.sheet_to_json(tpl.Sheets['Товары'], { header: 1 })[0];
+  // заполняем таблицу как пользователь
+  const rows = [head,
+    ['f1', 'XL ONE', 'XLBRAND', 4100, 'S, M', 'BLACK', 'Худи, Куртки', 'худи', '0,9', '20 дней', 'Описание', 1, 'S|48|49; M|50|51', 'нет', ''],
+    ['', 'XL TWO', 'XLBRAND', 1900, '', '', 'Футболки', 'футболки', '', '', '', '', '', 'да', ''],
+  ];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Товары');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'xl-'));
+  XLSX.writeFile(wb, path.join(dir, 't.xlsx'));
+  fs.mkdirSync(path.join(dir, 'photos', 'f1'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'photos', 'XL TWO'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'photos', 'f1', '1.png'), png(10, 10, 10));
+  fs.writeFileSync(path.join(dir, 'photos', 'f1', '2.png'), png(20, 20, 20));
+  fs.writeFileSync(path.join(dir, 'photos', 'XL TWO', 'a.png'), png(30, 30, 30));
+  await page.locator('#xl-file').setInputFiles(path.join(dir, 't.xlsx'));
+  await expect(page.locator('#bulk-list .brow')).toHaveCount(2);
+  await page.locator('#bulk-dir').setInputFiles(path.join(dir, 'photos'));
+  await expect(page.locator('#bulk-list .brow').first()).toContainText('2 фото');
+  await page.locator('#bulk-go').click();
+  await expect(page.locator('#bulk-err')).toHaveText('Готово: создано 2', { timeout: 20000 });
+  const made = (await (await request.get('/api/products')).json()).filter(p => p.brand === 'XLBRAND');
+  const one = made.find(p => p.name === 'XL ONE'), two = made.find(p => p.name === 'XL TWO');
+  expect(one).toMatchObject({ price: 4100, sizes: ['S', 'M'], color: 'BLACK', kinds: ['Худи', 'Куртки'], cat: 'l', weight: 0.9, eta: '20 дней', sizeHead: 'Размер | Длина рукава | Длина', sizeTable: 'S|48|49\nM|50|51', soldOut: false });
+  expect(one.images).toHaveLength(2);
+  expect(two).toMatchObject({ price: 1900, kinds: ['Футболки'], cat: 'm', soldOut: true });
+  expect(two.images).toHaveLength(1);
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  await request.post('/api/products/delete', { data: { ids: made.map(p => p.id) } });
+});

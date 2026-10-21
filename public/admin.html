@@ -108,6 +108,13 @@
 
   <div class="wrap" id="bulk-tab" hidden>
     <div class="form" style="max-width:none">
+      <div><b>Через Excel — самый быстрый способ</b></div>
+      <p class="note">1) Скачайте шаблон и заполните: одна строка = один товар. 2) Загрузите таблицу. 3) Выберите папку с фото: в ней по подпапке на товар, имя подпапки — как в столбце «Папка с фото» (или как название). 4) Нажмите «Создать товары».</p>
+      <div class="g2">
+        <button class="btn" type="button" id="xl-template">Скачать шаблон Excel</button>
+        <label class="drop" style="min-height:48px">Загрузить заполненную таблицу (.xlsx, .csv)<input type="file" id="xl-file" accept=".xlsx,.xls,.csv" hidden></label>
+      </div>
+      <div style="margin-top:8px"><b>Или только из папок</b></div>
       <p class="note">Выберите папку, где внутри по папке на каждый товар: имя папки = название товара, фото внутри — фото товара (по имени файла по порядку, первое — обложка). Можно выбрать просто много фото без папок — тогда каждое фото станет отдельным товаром.</p>
       <div class="g2">
         <label class="drop" id="bulk-drop">Выбрать папку с товарами<input type="file" id="bulk-dir" webkitdirectory multiple hidden></label>

@@ -497,31 +497,118 @@ function renderBulkSelects() {
   $('#bulk-kind').innerHTML = '<option value="">— без категории —</option>' + kinds.map(k => `<option>${esc(k)}</option>`).join('');
   $('#bulk-cat').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<option value="${k}"${k === 'm' ? ' selected' : ''}>${esc(l)}</option>`).join('');
 }
+const norm = t => String(t || '').trim().toLowerCase();
 function addDraftFiles(files, flat) {
   const imgs = [...files].filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
   if (flat) {
     for (const f of imgs.sort(byName)) drafts.push({ name: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim(), price: '', files: [f] });
+    return renderDrafts();
+  }
+  const groups = new Map();
+  for (const f of imgs) {
+    const parts = (f.webkitRelativePath || f.name).split('/');
+    const key = parts.length > 2 ? parts[parts.length - 2] : parts.length === 2 ? parts[0] : f.name.replace(/\.[^.]+$/, '');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(f);
+  }
+  for (const fs of groups.values()) fs.sort(byName).splice(10);
+  if (drafts.some(d => d.row)) { // таблица уже загружена — раздаём фото по строкам
+    lastGroups = groups;
+    attachGroups();
   } else {
-    const groups = new Map();
-    for (const f of imgs) {
-      const parts = (f.webkitRelativePath || f.name).split('/');
-      const key = parts.length > 2 ? parts[parts.length - 2] : parts.length === 2 ? parts[0] : f.name.replace(/\.[^.]+$/, '');
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(f);
-    }
-    for (const [name, fs] of [...groups].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))) drafts.push({ name, price: '', files: fs.sort(byName).slice(0, 10) });
+    for (const [name, fs] of [...groups].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))) drafts.push({ name, price: '', files: fs });
   }
   renderDrafts();
 }
+let lastGroups = null;
+function attachGroups() {
+  if (!lastGroups) return;
+  const byKey = new Map([...lastGroups].map(([k, v]) => [norm(k), v]));
+  const used = new Set();
+  for (const d of drafts) if (d.row) {
+    const key = [norm(d.row.folder), norm(d.name)].find(k => k && byKey.has(k));
+    if (key) { d.files = byKey.get(key); d.src = ''; used.add(key); }
+  }
+  const extra = [...byKey.keys()].filter(k => !used.has(k));
+  $('#bulk-err').textContent = extra.length ? `Папки без строки в таблице: ${extra.slice(0, 8).join(', ')}${extra.length > 8 ? '…' : ''}` : '';
+}
+
+// --- Excel ---
+const XL_COLS = ['Папка с фото', 'Название*', 'Бренд*', 'Цена, ₽*', 'Размеры', 'Цвет', 'Категории одежды', 'Доставка по Китаю', 'Вес, кг', 'Срок доставки', 'Описание', 'Шаблон сетки', 'Размерная сетка', 'Нет в наличии', 'Артикул'];
+const XL_KEYS = ['folder', 'name', 'brand', 'price', 'sizes', 'color', 'kinds', 'cat', 'weight', 'eta', 'description', 'sizeHead', 'sizeTable', 'soldOut', 'sku'];
+const loadXL = () => window.XLSX ? Promise.resolve(window.XLSX) : new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = '/xlsx.js'; sc.onload = () => ok(window.XLSX); sc.onerror = () => no(new Error('Не удалось загрузить модуль Excel')); document.head.append(sc); });
+$('#xl-template').onclick = async () => {
+  const X = await loadXL();
+  const ex = [
+    ['ARCHIVE JACKET', 'ARCHIVE JACKET', 'TEMPT', 3900, 'S, M, L', 'BROWN', 'Куртки, Бомберы', 'обувь/куртки', 1.2, '18–25 дней', 'Описание товара', 1, 'S|60|66; M|61|68; L|62|70', 'нет', ''],
+    ['bloom', 'BLOOM THROUGH THORNS', 'RESHAPE', 3350, 'M, L', 'GREY', 'Зип-худи', 'худи/штаны', 0.8, '', '', 2, 'M|66|65|57; L|68|67|58', '', ''],
+  ];
+  const ws = X.utils.aoa_to_sheet([XL_COLS, ...ex]);
+  ws['!cols'] = XL_COLS.map((c, i) => ({ wch: [16, 24, 14, 10, 12, 10, 22, 18, 8, 14, 30, 12, 30, 12, 10][i] }));
+  const help = [
+    ['Как заполнять'],
+    ['* — обязательные столбцы. Одна строка = один товар.'],
+    ['Папка с фото — имя подпапки с фото этого товара. Пусто — ищется папка с именем как у товара.'],
+    ['Категории одежды — через запятую, из списка ниже (можно и новые).'],
+    ['Доставка по Китаю: мелкое / футболки / худи / обувь (или s, m, l, xl).'],
+    ['Шаблон сетки — номер из списка ниже. Размерная сетка — размеры через ; а значения через |, например: S|48|49; M|50|51'],
+    ['Нет в наличии — «да», если товара нет. Артикул — пусто, назначится сам.'],
+    [],
+    ['Шаблоны сеток'], ...heads.map((h, i) => [i + 1, h]),
+    [],
+    ['Категории одежды'], ...types.map(t => [t]),
+  ];
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, 'Товары');
+  X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet(help), 'Подсказки');
+  X.writeFile(wb, 'tempt-товары.xlsx');
+};
+function catKey(v) {
+  v = norm(v);
+  if (!v) return '';
+  if (Shipping.CATS[v]) return v;
+  const words = { s: ['мел', 'носк', 'аксесс'], m: ['футбол', 'шорт', 'лонг'], l: ['худи', 'свит', 'штан'], xl: ['обув', 'курт', 'круп'] };
+  return Object.keys(words).find(k => words[k].some(w => v.includes(w))) || '';
+}
+$('#xl-file').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  $('#bulk-err').textContent = '';
+  try {
+    const X = await loadXL();
+    const wb = X.read(await f.arrayBuffer());
+    const rows = X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false });
+    const head = rows.shift().map(h => norm(h).replace(/\*$/, ''));
+    const idx = XL_COLS.map(c => head.indexOf(norm(c).replace(/\*$/, '')));
+    if (idx[1] < 0) throw new Error('Не найден столбец «Название» — используйте шаблон');
+    drafts = rows.filter(r => r.some(c => String(c).trim())).map(r => {
+      const row = Object.fromEntries(XL_KEYS.map((k, i) => [k, idx[i] >= 0 ? String(r[idx[i]]).trim() : '']));
+      const n = Number(row.sizeHead);
+      row.sizeHead = n >= 1 && heads[n - 1] ? heads[n - 1] : row.sizeHead;
+      row.sizeTable = row.sizeTable.replace(/\s*;\s*/g, '\n');
+      row.kinds = row.kinds.split(',').map(t => t.trim()).filter(Boolean);
+      row.cat = catKey(row.cat);
+      row.soldOut = /^(да|yes|1|\+)$/i.test(row.soldOut);
+      row.price = row.price.replace(/[^\d.,]/g, '').replace(',', '.');
+      row.weight = row.weight.replace(',', '.');
+      return { row, name: row.name, price: row.price, files: [] };
+    });
+    attachGroups();
+    renderDrafts();
+  } catch (err) {
+    $('#bulk-err').textContent = 'Таблица: ' + err.message;
+  }
+};
 function renderDrafts() {
   $('#bulk-count').textContent = drafts.length ? `Товаров к созданию: ${drafts.length}` : '';
   $('#bulk-go').disabled = !drafts.length;
   $('#bulk-go').textContent = drafts.length ? `Создать товары (${drafts.length})` : 'Создать товары';
   $('#bulk-list').innerHTML = drafts.map((d, i) => `<div class="brow">
-    <div class="ph"><img src="${esc(d.src ||= URL.createObjectURL(d.files[0]))}" alt=""></div>
+    <div class="ph">${d.files[0] ? `<img src="${esc(d.src ||= URL.createObjectURL(d.files[0]))}" alt="">` : ''}</div>
     <input data-i="${i}" data-k="name" value="${esc(d.name)}" aria-label="Название" maxlength="120">
     <input data-i="${i}" data-k="price" value="${esc(d.price)}" type="number" min="1" placeholder="Цена" aria-label="Цена">
-    <span class="mute">${d.files.length} фото</span>
+    <span class="${d.files.length ? 'mute' : 'err'}">${d.files.length} фото</span>
     <button type="button" data-rm="${i}">Убрать</button>
   </div>`).join('');
 }
@@ -551,7 +638,8 @@ $('#bulk-go').onclick = async () => {
   const g = n => $('#bulk-common').querySelector(`[name=${n}]`).value;
   const btn = $('#bulk-go');
   $('#bulk-err').textContent = '';
-  if (!g('brand').trim()) return ($('#bulk-err').textContent = 'Укажите бренд');
+  const noBrand = drafts.filter(d => !(d.row?.brand || g('brand').trim()));
+  if (noBrand.length) return ($('#bulk-err').textContent = 'Укажите бренд (общий или в таблице)');
   const miss = drafts.filter(d => !(Number(d.price || g('price')) > 0));
   if (miss.length) return ($('#bulk-err').textContent = `Нет цены у: ${miss.slice(0, 5).map(d => d.name).join(', ')}${miss.length > 5 ? '…' : ''}`);
   btn.disabled = true;
@@ -565,7 +653,9 @@ $('#bulk-go').onclick = async () => {
       await Promise.all([0, 1, 2].map(async () => { for (let it; (it = queue.shift()); ) images[it[1]] = await uploadImage(it[0]); }));
       btn.textContent = `Товар ${done + 1}: сохранение…`;
       const saved = await api('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-        name: d.name, brand: g('brand'), price: d.price || g('price'), sizes: g('sizes'), weight: g('weight'), cat: g('cat'), kinds: g('kind') ? [g('kind')] : [], images,
+        name: d.name, brand: g('brand'), price: d.price || g('price'), sizes: g('sizes'), weight: g('weight'), cat: g('cat'), kinds: g('kind') ? [g('kind')] : [],
+        ...Object.fromEntries(Object.entries(d.row || {}).filter(([k, v]) => k !== 'folder' && k !== 'name' && k !== 'price' && (Array.isArray(v) ? v.length : v !== '' && v !== false) )),
+        soldOut: !!d.row?.soldOut, images,
       }) });
       products.unshift(saved);
       drafts.shift();
