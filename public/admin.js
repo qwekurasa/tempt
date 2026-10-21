@@ -189,7 +189,7 @@ async function uploadImage(f) {
 function photoList(input, box) {
   let items = []; // { url } — уже загруженные, { file, src } — новые
   const render = () => {
-    box.innerHTML = items.map((it, i) => `<div class="pthumb"><img src="${esc(it.url || it.src)}" alt=""><button type="button" data-rm="${i}" aria-label="Убрать фото">×</button>${i ? `<button type="button" data-first="${i}" aria-label="Сделать обложкой">★</button>` : '<span class="cover">обложка</span>'}</div>`).join('');
+    box.innerHTML = items.map((it, i) => `<div class="pthumb" draggable="true" data-i="${i}"><img src="${esc(it.url || it.src)}" alt="" draggable="false"><button type="button" data-rm="${i}" aria-label="Убрать фото">×</button>${i ? `<button type="button" data-first="${i}" aria-label="Сделать обложкой">★</button>` : '<span class="cover">обложка</span>'}<span class="pmove">${i ? `<button type="button" data-mv="${i}" data-d="-1" aria-label="Левее">‹</button>` : '<i></i>'}${i < items.length - 1 ? `<button type="button" data-mv="${i}" data-d="1" aria-label="Правее">›</button>` : ''}</span></div>`).join('');
   };
   input.required = false;
   input.onchange = () => {
@@ -198,9 +198,22 @@ function photoList(input, box) {
     render();
   };
   box.onclick = e => {
-    const { rm, first } = e.target.dataset;
+    const { rm, first, mv, d } = e.target.dataset;
+    if (mv !== undefined) { const j = +mv + +d; [items[+mv], items[j]] = [items[j], items[+mv]]; }
     if (rm !== undefined) items.splice(+rm, 1);
     if (first !== undefined) items.unshift(...items.splice(+first, 1));
+    render();
+  };
+  // перетаскивание мышью
+  let from = null;
+  box.ondragstart = e => { from = +e.target.closest('.pthumb')?.dataset.i; };
+  box.ondragover = e => e.preventDefault();
+  box.ondrop = e => {
+    e.preventDefault();
+    const to = e.target.closest('.pthumb');
+    if (from === null || !to) return;
+    items.splice(+to.dataset.i, 0, ...items.splice(from, 1));
+    from = null;
     render();
   };
   return {

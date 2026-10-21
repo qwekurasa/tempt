@@ -77,3 +77,17 @@ base.test('ADM-PHOTO большой файл (>4 МБ) загружается', 
   await request.post('/api/login', { data: { password: 'e2e-pass' } });
   await request.post('/api/products/delete', { data: { ids: [p.id] } });
 });
+
+test('ADM-PHOTO порядок фото меняется стрелками', async ({ page }) => {
+  await page.goto('/admin');
+  await page.getByLabel('Пароль').fill('e2e-pass');
+  await page.getByRole('button', { name: 'Войти' }).click();
+  const input = page.locator('#pf input[name=images]');
+  await input.setInputFiles([file('a.png', [255, 0, 0]), file('b.png', [0, 255, 0]), file('c.png', [0, 0, 255])]);
+  const srcs = () => page.locator('#pf-photos .pthumb img').evaluateAll(a => a.map(i => i.src));
+  const before = await srcs();
+  await page.locator('#pf-photos [data-mv="0"][data-d="1"]').click();
+  expect(await srcs()).toEqual([before[1], before[0], before[2]]);
+  await page.locator('#pf-photos [data-mv="2"][data-d="-1"]').click();
+  expect(await srcs()).toEqual([before[1], before[2], before[0]]);
+});
