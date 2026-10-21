@@ -37,3 +37,18 @@ test('F01-E4 только клавиатура: карточка открыва�
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#\/p\/demo-hoodie-1$/);
 });
+
+test('ST размерная сетка на странице товара', async ({ page, request }) => {
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  const p = await (await request.post('/api/products', { data: { name: 'ST TEST', brand: 'STBRAND', price: 10, sizes: 'S, M',
+    sizeTable: 'Size | Length | 1/2 Chest | Sleeve | Weight (kg) | Height (cm)\nS    | 64     | 63        | 56     | 45–60       | 155–165\nM    | 66     | 65        | 57     | 50–65       | 165–170' } })).json();
+  await page.goto('/#/p/' + p.id);
+  await expect(page.locator('#p-st')).toBeHidden();
+  await page.getByRole('button', { name: 'Размерная сетка' }).click();
+  await expect(page.locator('#p-st table tr')).toHaveCount(3);
+  await expect(page.locator('#p-st th').nth(2)).toHaveText(/1\/2 Chest/i);
+  await expect(page.locator('#p-st tbody tr').first().locator('td').last()).toHaveText('155–165');
+  await page.goto('/#/p/demo-tee-1');
+  await expect(page.getByRole('button', { name: 'Размерная сетка' })).toBeHidden();
+  await request.delete('/api/products/' + p.id);
+});

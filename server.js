@@ -124,6 +124,7 @@ function productFields(b) {
     price: Math.round(Number(b.price)),
     sizes: S(b.sizes).split(',').map(s => s.trim().slice(0, 20)).filter(Boolean).slice(0, 30),
     description: S(b.description).slice(0, 5000),
+    sizeTable: S(b.sizeTable).slice(0, 4000),
     soldOut: b.soldOut === true,
     eta: S(b.eta).slice(0, 40),
     images: Array.isArray(b.images) ? b.images.filter(isImage).slice(0, 10) : [],

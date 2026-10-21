@@ -43,7 +43,11 @@
     return { lines, goods, chinaCny, china, intl, tk, weight, kg, rate, total: goods + (china || 0) + (intl || 0) + tk, complete };
   }
 
-  const api = { DEFAULTS, TYPES, CATS, cat, settings, quote };
+  // Размерная сетка: строки, ячейки через | или табуляцию; первая строка — заголовок
+  const sizeRows = t => String(t || '').split('\n').map(l => l.trim()).filter(l => l && !/^[-|:\s]+$/.test(l))
+    .map(l => l.replace(/^\||\|$/g, '').split(/\s*\|\s*|\t/).map(c => c.trim()));
+
+  const api = { DEFAULTS, TYPES, CATS, sizeRows, cat, settings, quote };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Shipping = api;
 })(this);

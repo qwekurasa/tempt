@@ -139,6 +139,11 @@ function showProduct(id) {
   ].filter(x => x !== false && x !== undefined && x !== null).join('\n').trim();
   $('#p-info').hidden = true;
   $('#info-btn').setAttribute('aria-expanded', 'false');
+  const st = Shipping.sizeRows(current.sizeTable);
+  $('#st-btn').hidden = st.length < 2;
+  $('#p-st').hidden = true;
+  $('#st-btn').setAttribute('aria-expanded', 'false');
+  $('#p-st').innerHTML = st.length < 2 ? '' : `<table class="st"><thead><tr>${st[0].map(c => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${st.slice(1).map(r => `<tr>${st[0].map((_, i) => `<td>${esc(r[i] || '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   setBuy(false);
   scrollTo(0, 0);
 }
@@ -341,6 +346,11 @@ $('#sizes').onclick = e => {
 $('#add').onclick = () => {
   if (size === null) return;
   addToCart(size);
+};
+$('#st-btn').onclick = () => {
+  const open = $('#p-st').hidden;
+  $('#p-st').hidden = !open;
+  $('#st-btn').setAttribute('aria-expanded', String(open));
 };
 $('#info-btn').onclick = () => {
   const open = $('#p-info').hidden;

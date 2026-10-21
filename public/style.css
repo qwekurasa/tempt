@@ -118,6 +118,12 @@ html:not([data-theme=dark]) .logo img{opacity:.88}
 .sizes button[aria-pressed=true]{border-bottom-color:var(--text);font-weight:700}
 .link{text-decoration:underline;text-underline-offset:3px}
 .p-info{white-space:pre-line;line-height:1.8}
+.p-links{display:flex;gap:24px;justify-content:center}
+.st-wrap{max-width:100%;overflow-x:auto}
+.st{border-collapse:collapse;font-size:11px;margin:0 auto}
+.st th,.st td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+.st th{font-weight:700}
+.st td:first-child,.st th:first-child{text-align:left;font-weight:700}
 .p-status a{text-decoration:underline;text-underline-offset:3px}
 
 .ph{aspect-ratio:1;background:var(--surface);display:flex;align-items:center;justify-content:center}

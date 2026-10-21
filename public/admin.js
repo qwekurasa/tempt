@@ -244,7 +244,7 @@ form.onsubmit = async e => {
     if (!prodPhotos.count()) throw new Error('Добавьте хотя бы одно фото');
     const images = await prodPhotos.upload(t => (btn.textContent = t));
     btn.textContent = 'Сохранение…';
-    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, kinds: checkedKinds(), weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, images };
+    const body = { name: form.name.value, brand: form.brand.value, sku: form.sku.value, color: form.color.value, cat: form.cat.value, kinds: checkedKinds(), weight: form.weight.value, eta: form.eta.value, soldOut: form.soldOut.checked, price: form.price.value, sizes: form.sizes.value, description: form.description.value, sizeTable: form.sizeTable.value, images };
     const saved = await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -313,6 +313,8 @@ function fillForm(p) {
   form.price.value = p.price;
   form.sizes.value = p.sizes.join(', ');
   form.description.value = p.description;
+  form.sizeTable.value = p.sizeTable || '';
+  previewSizes();
   prodPhotos.set(p.images);
   $('#pf-submit').textContent = 'Сохранить';
   $('#pf-cancel').hidden = false;
@@ -453,3 +455,14 @@ $('#post-list').onclick = async e => {
 resetForm();
 fetch('/api/me').then(r => (r.ok ? showPanel() : showLogin()));
 
+
+// предпросмотр размерной сетки
+function sizeTableHtml(t) {
+  const rows = Shipping.sizeRows(t);
+  if (!rows.length) return '';
+  const [h, ...b] = rows;
+  return `<table class="st"><thead><tr>${h.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${b.map(r => `<tr>${h.map((_, i) => `<td>${esc(r[i] || '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+function previewSizes() { $('#st-preview').innerHTML = sizeTableHtml(form.sizeTable.value); }
+form.sizeTable.oninput = previewSizes;
+form.addEventListener('reset', () => setTimeout(previewSizes));
