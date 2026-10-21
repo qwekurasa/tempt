@@ -60,6 +60,15 @@ const save = items =>
     cacheControlMaxAge: 60,
   }));
 
+// новые категории одежды из товара (например, из Excel) сразу попадают в общий список
+async function addKinds(kinds) {
+  if (!kinds || !kinds.length) return;
+  const st = await loadSettings(true);
+  const list = st.types && st.types.length ? st.types : Shipping.TYPES;
+  const fresh = kinds.filter(k => !list.some(t => t.toLowerCase() === k.toLowerCase()));
+  if (fresh.length) await saveSettings({ ...st, types: [...list, ...fresh] });
+}
+
 // --- Telegram ---
 async function tg(method, body) {
   const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -239,6 +248,7 @@ app.post('/api/products', auth, serial(async (req, res) => {
   if (!withSku(items, product, S_SKU(req.body))) return res.status(400).json({ error: 'Такой артикул уже есть' });
   items.unshift(product);
   await save(items);
+  await addKinds(product.kinds);
   res.json(product);
 }));
 
@@ -254,6 +264,7 @@ app.put('/api/products/:id', auth, serial(async (req, res) => {
   Object.assign(product, p);
   await save(items);
   removeImages(removed.filter(u => !items.some(x => x.images.includes(u))));
+  await addKinds(product.kinds);
   res.json(product);
 }));
 

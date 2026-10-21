@@ -47,3 +47,12 @@ test('API параллельные добавления не теряются, �
   const after = await (await request.get('/api/products?fresh')).json();
   expect(after.some(p => p.brand === 'PARBRAND')).toBe(false);
 });
+
+test('API новая категория из товара добавляется в список', async ({ request }) => {
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  const p = await (await request.post('/api/products', { data: { name: 'NEWKIND', brand: 'NK', price: 10, kinds: ['Балаклавы'] } })).json();
+  const s = await (await request.get('/api/settings?fresh')).json();
+  expect(s.types).toContain('Балаклавы');
+  expect(s.types).toContain('Футболки');
+  await request.delete('/api/products/' + p.id);
+});

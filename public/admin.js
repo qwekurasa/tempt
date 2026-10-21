@@ -663,6 +663,8 @@ $('#bulk-go').onclick = async () => {
       renderDrafts();
     }
     renderList();
+    types = [...new Set([...types, ...products.flatMap(kindsOf)])];
+    $('#rates').types.value = types.join('\n');
     $('#bulk-err').textContent = `Готово: создано ${done}`;
   } catch (err) {
     renderList();
