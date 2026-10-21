@@ -283,6 +283,8 @@ $('#admin-tabs').onclick = e => {
   if (!t) return;
   $('#products-tab').hidden = t !== 'products';
   $('#forum-tab').hidden = t !== 'forum';
+  $('#bulk-tab').hidden = t !== 'bulk';
+  if (t === 'bulk') renderBulkSelects();
   if (t === 'forum') { loadPosts(); renderPick(); }
   $('#rates').hidden = t !== 'settings';
   $('#admin-tabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
@@ -486,3 +488,97 @@ function sizeTableHtml() {
 function previewSizes() { $('#st-preview').innerHTML = sizeTableHtml(); }
 form.sizeTable.oninput = previewSizes;
 form.addEventListener('reset', () => setTimeout(() => { renderHeads(heads[0]); previewSizes(); }));
+
+// --- массовое добавление ---
+let drafts = []; // { name, price, files: [File] }
+const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true });
+function renderBulkSelects() {
+  const kinds = [...new Set([...types, ...products.flatMap(kindsOf)])];
+  $('#bulk-kind').innerHTML = '<option value="">— без категории —</option>' + kinds.map(k => `<option>${esc(k)}</option>`).join('');
+  $('#bulk-cat').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<option value="${k}"${k === 'm' ? ' selected' : ''}>${esc(l)}</option>`).join('');
+}
+function addDraftFiles(files, flat) {
+  const imgs = [...files].filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
+  if (flat) {
+    for (const f of imgs.sort(byName)) drafts.push({ name: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim(), price: '', files: [f] });
+  } else {
+    const groups = new Map();
+    for (const f of imgs) {
+      const parts = (f.webkitRelativePath || f.name).split('/');
+      const key = parts.length > 2 ? parts[parts.length - 2] : parts.length === 2 ? parts[0] : f.name.replace(/\.[^.]+$/, '');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(f);
+    }
+    for (const [name, fs] of [...groups].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))) drafts.push({ name, price: '', files: fs.sort(byName).slice(0, 10) });
+  }
+  renderDrafts();
+}
+function renderDrafts() {
+  $('#bulk-count').textContent = drafts.length ? `Товаров к созданию: ${drafts.length}` : '';
+  $('#bulk-go').disabled = !drafts.length;
+  $('#bulk-go').textContent = drafts.length ? `Создать товары (${drafts.length})` : 'Создать товары';
+  $('#bulk-list').innerHTML = drafts.map((d, i) => `<div class="brow">
+    <div class="ph"><img src="${esc(d.src ||= URL.createObjectURL(d.files[0]))}" alt=""></div>
+    <input data-i="${i}" data-k="name" value="${esc(d.name)}" aria-label="Название" maxlength="120">
+    <input data-i="${i}" data-k="price" value="${esc(d.price)}" type="number" min="1" placeholder="Цена" aria-label="Цена">
+    <span class="mute">${d.files.length} фото</span>
+    <button type="button" data-rm="${i}">Убрать</button>
+  </div>`).join('');
+}
+$('#bulk-list').oninput = e => { const { i, k } = e.target.dataset; if (i) drafts[i][k] = e.target.value; };
+$('#bulk-list').onclick = e => { if (e.target.dataset.rm) { drafts.splice(+e.target.dataset.rm, 1); renderDrafts(); } };
+$('#bulk-dir').onchange = e => { addDraftFiles(e.target.files, false); e.target.value = ''; };
+$('#bulk-files').onchange = e => { addDraftFiles(e.target.files, true); e.target.value = ''; };
+// перетаскивание папок/файлов
+async function walk(entry, path, out) {
+  if (entry.isFile) return new Promise(r => entry.file(f => { Object.defineProperty(f, 'webkitRelativePath', { value: path + f.name }); out.push(f); r(); }, r));
+  const reader = entry.createReader();
+  for (let batch; (batch = await new Promise(r => reader.readEntries(r, () => r([])))).length; ) for (const en of batch) await walk(en, path + entry.name + '/', out);
+}
+const zone = $('#bulk-drop');
+zone.ondragover = e => { e.preventDefault(); zone.classList.add('over'); };
+zone.ondragleave = () => zone.classList.remove('over');
+zone.ondrop = async e => {
+  e.preventDefault();
+  zone.classList.remove('over');
+  const out = [];
+  const entries = [...e.dataTransfer.items].map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+  if (entries.length === 1 && entries[0].isDirectory) { const r = entries[0].createReader(); for (let b; (b = await new Promise(x => r.readEntries(x, () => x([])))).length; ) for (const en of b) await walk(en, entries[0].name + '/', out); }
+  else for (const en of entries) await walk(en, '', out);
+  addDraftFiles(out, !out.some(f => f.webkitRelativePath.includes('/')));
+};
+$('#bulk-go').onclick = async () => {
+  const g = n => $('#bulk-common').querySelector(`[name=${n}]`).value;
+  const btn = $('#bulk-go');
+  $('#bulk-err').textContent = '';
+  if (!g('brand').trim()) return ($('#bulk-err').textContent = 'Укажите бренд');
+  const miss = drafts.filter(d => !(Number(d.price || g('price')) > 0));
+  if (miss.length) return ($('#bulk-err').textContent = `Нет цены у: ${miss.slice(0, 5).map(d => d.name).join(', ')}${miss.length > 5 ? '…' : ''}`);
+  btn.disabled = true;
+  let done = 0;
+  try {
+    while (drafts.length) {
+      const d = drafts[0];
+      btn.textContent = `Товар ${done + 1}: загрузка фото…`;
+      const images = [];
+      const queue = d.files.map((f, i) => [f, i]);
+      await Promise.all([0, 1, 2].map(async () => { for (let it; (it = queue.shift()); ) images[it[1]] = await uploadImage(it[0]); }));
+      btn.textContent = `Товар ${done + 1}: сохранение…`;
+      const saved = await api('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        name: d.name, brand: g('brand'), price: d.price || g('price'), sizes: g('sizes'), weight: g('weight'), cat: g('cat'), kinds: g('kind') ? [g('kind')] : [], images,
+      }) });
+      products.unshift(saved);
+      drafts.shift();
+      done++;
+      renderDrafts();
+    }
+    renderList();
+    $('#bulk-err').textContent = `Готово: создано ${done}`;
+  } catch (err) {
+    renderList();
+    $('#bulk-err').textContent = `Создано ${done}. Ошибка: ${err.message}. Оставшиеся можно отправить ещё раз.`;
+  } finally {
+    btn.disabled = !drafts.length;
+    renderDrafts();
+  }
+};

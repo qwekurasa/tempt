@@ -26,6 +26,13 @@
   .row.flash{animation:flash 2.4s ease-out}
   @keyframes flash{from{background:#efeee9}to{background:transparent}}
   .cols>*{min-width:0}
+  .drop{display:flex!important;align-items:center;justify-content:center;min-height:80px;border:1px dashed var(--border-input);border-radius:var(--radius);cursor:pointer;text-align:center;padding:12px}
+  .drop.over{background:var(--surface)}
+  .brow{display:grid;grid-template-columns:56px 1fr 120px auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+  .brow .ph{width:56px;height:56px;background:var(--surface)}
+  .brow .ph img{width:100%;height:100%;object-fit:contain}
+  .brow input{min-width:0}
+  @media (max-width:800px){.brow{grid-template-columns:56px 1fr}.brow>:nth-child(n+3){grid-column:2}}
   #pf textarea[name=sizeTable]{font-family:var(--mono);text-transform:none;white-space:pre;overflow-x:auto}
   .photos{display:flex;flex-wrap:wrap;gap:8px}
   .pthumb{position:relative;width:72px;height:72px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
@@ -72,7 +79,7 @@
 
 <div id="panel" hidden>
   <header class="admin-head">
-    <nav class="tabs" id="admin-tabs"><button data-tab="products" class="on">Товары</button><button data-tab="forum">Форум</button><button data-tab="settings">Настройки</button></nav>
+    <nav class="tabs" id="admin-tabs"><button data-tab="products" class="on">Товары</button><button data-tab="bulk">Массово</button><button data-tab="forum">Форум</button><button data-tab="settings">Настройки</button></nav>
     <a class="logo" href="/"><img src="/logo.svg" alt="TEMPT" width="56" height="28"></a>
     <button id="logout">Выйти</button>
   </header>
@@ -98,6 +105,29 @@
     <p class="err" id="rates-err"></p>
     <button class="btn" id="rates-submit">Сохранить настройки</button>
   </form>
+
+  <div class="wrap" id="bulk-tab" hidden>
+    <div class="form" style="max-width:none">
+      <p class="note">Выберите папку, где внутри по папке на каждый товар: имя папки = название товара, фото внутри — фото товара (по имени файла по порядку, первое — обложка). Можно выбрать просто много фото без папок — тогда каждое фото станет отдельным товаром.</p>
+      <div class="g2">
+        <label class="drop" id="bulk-drop">Выбрать папку с товарами<input type="file" id="bulk-dir" webkitdirectory multiple hidden></label>
+        <label class="drop">Выбрать фото (каждое — отдельный товар)<input type="file" id="bulk-files" accept="image/*" multiple hidden></label>
+      </div>
+      <div>Общее для всех товаров (у каждого можно поменять потом через «Изменить»)</div>
+      <div class="g2" id="bulk-common">
+        <label>Бренд<input name="brand" list="brand-list" required></label>
+        <label>Цена, ₽ по умолчанию<input name="price" type="number" min="1" step="1"></label>
+        <label>Размеры через запятую<input name="sizes" placeholder="S, M, L"></label>
+        <label>Примерный вес, кг<input name="weight" type="number" min="0" step="0.01"></label>
+        <label>Категория одежды<select name="kind" id="bulk-kind"></select></label>
+        <label>Категория доставки по Китаю<select name="cat" id="bulk-cat"></select></label>
+      </div>
+      <div class="mute" id="bulk-count"></div>
+      <div id="bulk-list"></div>
+      <p class="err" id="bulk-err"></p>
+      <button class="btn" type="button" id="bulk-go" disabled>Создать товары</button>
+    </div>
+  </div>
 
   <div class="wrap cols" id="forum-tab" hidden>
     <form class="form" id="postf">

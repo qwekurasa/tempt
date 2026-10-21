@@ -114,3 +114,34 @@ test('ST шаблон сетки в админке', async ({ page, request }) =
   await request.post('/api/login', { data: { password: 'e2e-pass' } });
   await request.delete('/api/products/' + p.id);
 });
+
+test('BULK массовое добавление: папка с подпапками и отдельные фото', async ({ page, request }, info) => {
+  test.skip(info.project.name === 'mobile');
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bulk-'));
+  for (const [name, n] of [['BULK ONE', 2], ['BULK TWO', 1]]) {
+    fs.mkdirSync(path.join(dir, 'drop', name), { recursive: true });
+    for (let i = 1; i <= n; i++) fs.writeFileSync(path.join(dir, 'drop', name, `${i}.png`), png(i * 40, 0, 0));
+  }
+  await page.goto('/admin');
+  await page.getByLabel('Пароль').fill('e2e-pass');
+  await page.getByRole('button', { name: 'Войти' }).click();
+  await page.getByRole('button', { name: 'Массово' }).click();
+  await page.locator('#bulk-dir').setInputFiles(path.join(dir, 'drop'));
+  await page.locator('#bulk-files').setInputFiles([file('BULK_THREE.png', [9, 9, 9])]);
+  await expect(page.locator('#bulk-list .brow')).toHaveCount(3);
+  const c = page.locator('#bulk-common');
+  await c.getByLabel('Бренд').fill('BULKBRAND');
+  await c.getByLabel('Цена, ₽ по умолчанию').fill('2500');
+  await c.getByLabel('Категория одежды').selectOption('Худи');
+  await page.locator('#bulk-list input[data-k=price]').nth(1).fill('3000');
+  await page.locator('#bulk-go').click();
+  await expect(page.locator('#bulk-err')).toHaveText('Готово: создано 3', { timeout: 20000 });
+  const made = (await (await request.get('/api/products')).json()).filter(p => p.brand === 'BULKBRAND');
+  expect(made.map(p => p.name).sort()).toEqual(['BULK ONE', 'BULK THREE', 'BULK TWO']);
+  expect(made.find(p => p.name === 'BULK ONE').images).toHaveLength(2);
+  expect(made.find(p => p.name === 'BULK TWO').price).toBe(3000);
+  expect(made.every(p => p.kinds[0] === 'Худи')).toBe(true);
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  await request.post('/api/products/delete', { data: { ids: made.map(p => p.id) } });
+});
