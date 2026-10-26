@@ -182,6 +182,8 @@ test('XL шаблон Excel: скачивание и импорт с папко�
   expect(one.images).toHaveLength(2);
   expect(two).toMatchObject({ price: 1900, kinds: ['Футболки'], cat: 'm', soldOut: true });
   expect(two.images).toHaveLength(1);
+  const all = await (await request.get('/api/products?fresh')).json();
+  expect(new Set(made.map(p => p.id)).size).toBe(2);
   await request.post('/api/login', { data: { password: 'e2e-pass' } });
   await request.post('/api/products/delete', { data: { ids: made.map(p => p.id) } });
 });

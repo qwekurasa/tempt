@@ -534,14 +534,14 @@ function attachGroups() {
 }
 
 // --- Excel ---
-const XL_COLS = ['Папка с фото', 'Название*', 'Бренд*', 'Цена, ₽*', 'Размеры', 'Цвет', 'Категории одежды', 'Доставка по Китаю', 'Вес, кг', 'Срок доставки', 'Описание', 'Шаблон сетки', 'Размерная сетка', 'Нет в наличии', 'Артикул'];
-const XL_KEYS = ['folder', 'name', 'brand', 'price', 'sizes', 'color', 'kinds', 'cat', 'weight', 'eta', 'description', 'sizeHead', 'sizeTable', 'soldOut', 'sku'];
+const XL_COLS = ['Папка с фото', 'Название*', 'Бренд*', 'Цена, ₽*', 'Размеры', 'Цвет', 'Категории одежды', 'Доставка по Китаю', 'Вес, кг', 'Срок доставки', 'Описание', 'Шаблон сетки', 'Размерная сетка', 'Нет в наличии'];
+const XL_KEYS = ['folder', 'name', 'brand', 'price', 'sizes', 'color', 'kinds', 'cat', 'weight', 'eta', 'description', 'sizeHead', 'sizeTable', 'soldOut'];
 const loadXL = () => window.XLSX ? Promise.resolve(window.XLSX) : new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = '/xlsx.js'; sc.onload = () => ok(window.XLSX); sc.onerror = () => no(new Error('Не удалось загрузить модуль Excel')); document.head.append(sc); });
 $('#xl-template').onclick = async () => {
   const X = await loadXL();
   const ex = [
-    ['ARCHIVE JACKET', 'ARCHIVE JACKET', 'TEMPT', 3900, 'S, M, L', 'BROWN', 'Куртки, Бомберы', 'обувь/куртки', 1.2, '18–25 дней', 'Описание товара', 1, 'S|60|66; M|61|68; L|62|70', 'нет', ''],
-    ['bloom', 'BLOOM THROUGH THORNS', 'RESHAPE', 3350, 'M, L', 'GREY', 'Зип-худи', 'худи/штаны', 0.8, '', '', 2, 'M|66|65|57; L|68|67|58', '', ''],
+    ['ARCHIVE JACKET', 'ARCHIVE JACKET', 'TEMPT', 3900, 'S, M, L', 'BROWN', 'Куртки, Бомберы', 'обувь/куртки', 1.2, '18–25 дней', 'Описание товара', 1, 'S|60|66; M|61|68; L|62|70', 'нет'],
+    ['bloom', 'BLOOM THROUGH THORNS', 'RESHAPE', 3350, 'M, L', 'GREY', 'Зип-худи', 'худи/штаны', 0.8, '', '', 2, 'M|66|65|57; L|68|67|58', ''],
   ];
   const ws = X.utils.aoa_to_sheet([XL_COLS, ...ex]);
   ws['!cols'] = XL_COLS.map((c, i) => ({ wch: [16, 24, 14, 10, 12, 10, 22, 18, 8, 14, 30, 12, 30, 12, 10][i] }));
@@ -552,7 +552,7 @@ $('#xl-template').onclick = async () => {
     ['Категории одежды — через запятую, из списка ниже (можно и новые).'],
     ['Доставка по Китаю: мелкое / футболки / худи / обувь (или s, m, l, xl).'],
     ['Шаблон сетки — номер из списка ниже. Размерная сетка — размеры через ; а значения через |, например: S|48|49; M|50|51'],
-    ['Нет в наличии — «да», если товара нет. Артикул — пусто, назначится сам.'],
+    ['Нет в наличии — «да», если товара нет. Артикул назначается сам: следующий по порядку (T0015, T0016…).'],
     [],
     ['Шаблоны сеток'], ...heads.map((h, i) => [i + 1, h]),
     [],
@@ -655,7 +655,7 @@ $('#bulk-go').onclick = async () => {
       const saved = await api('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
         name: d.name, brand: g('brand'), price: d.price || g('price'), sizes: g('sizes'), weight: g('weight'), cat: g('cat'), kinds: g('kind') ? [g('kind')] : [],
         ...Object.fromEntries(Object.entries(d.row || {}).filter(([k, v]) => k !== 'folder' && k !== 'name' && k !== 'price' && (Array.isArray(v) ? v.length : v !== '' && v !== false) )),
-        soldOut: !!d.row?.soldOut, images,
+        soldOut: !!d.row?.soldOut, sku: '', images, // артикул всегда назначается сам — следующий по порядку
       }) });
       products.unshift(saved);
       drafts.shift();
@@ -736,7 +736,7 @@ async function ypAllPhotos(progress) {
   await Promise.all([0, 1, 2, 3].map(async () => { for (let i; (i = queue.shift()) !== undefined; ) { res[i] = await ypFetchPhotos(ypItems[i]); progress(++n); } }));
   return res;
 }
-const ypRow = it => [it.name, it.name, '', it.price, it.sizes, '', '', '', '', '', it.description, '', '', '', ''];
+const ypRow = it => [it.name, it.name, '', it.price, it.sizes, '', '', '', '', '', it.description, '', '', ''];
 $('#yp-zip').onclick = async () => {
   const st = $('#yp-status'), btn = $('#yp-zip');
   btn.disabled = true;
