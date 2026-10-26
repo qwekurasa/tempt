@@ -69,6 +69,12 @@ body:not([data-view=product]) #pback{display:none}
 .post-imgs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;gap:4px;border-radius:var(--radius)}
 .post-imgs::-webkit-scrollbar{display:none}
 .post-imgs img{flex:0 0 100%;width:100%;aspect-ratio:1;object-fit:cover;scroll-snap-align:center;background:var(--surface);pointer-events:none;-webkit-user-drag:none}
+.post-gal{position:relative}
+.post-gal .arrow{background:rgba(0,0,0,.35);color:#fff;opacity:.8;border-radius:var(--radius)}
+.post-gal .arrow:disabled{opacity:0;pointer-events:none}
+.post-gal .prev{left:6px}
+.post-gal .next{right:6px}
+@media (hover:none){.post-gal .arrow{display:none}}
 .post-count{text-align:center;color:var(--text-muted);font-size:10px;margin-top:6px}
 .post-tag{display:inline-block;margin-top:14px;padding:2px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:10px;color:var(--text-muted)}
 .post h2{font-size:14px;font-weight:700;margin:12px 0 0}

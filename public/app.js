@@ -177,15 +177,29 @@ async function showForum() {
   }
   $('#posts').innerHTML = posts.length ? posts.map(p => `<article class="post">
     <div class="post-date">${fmtDate(p.createdAt)}</div>
-    ${p.images.length ? `<div class="post-imgs" tabindex="0" role="region" aria-label="Фото поста">${p.images.map(img).join('')}</div>${p.images.length > 1 ? `<div class="post-count">${p.images.length} фото · листайте</div>` : ''}` : ''}
+    ${p.images.length ? `<div class="post-gal"><div class="post-imgs" tabindex="0" role="region" aria-label="Фото поста">${p.images.map(img).join('')}</div>${p.images.length > 1 ? '<button class="arrow prev" data-pg="-1" aria-label="Предыдущее фото" disabled>‹</button><button class="arrow next" data-pg="1" aria-label="Следующее фото">›</button>' : ''}</div>${p.images.length > 1 ? `<div class="post-count"><span class="pc-i">1</span> / ${p.images.length}</div>` : ''}` : ''}
     ${p.tag ? `<span class="post-tag">${esc(p.tag)}</span>` : ''}
     ${p.title ? `<h2>${esc(p.title)}</h2>` : ''}
     ${p.text ? `<div class="post-text">${linkify(p.text)}</div>` : ''}
     ${postProducts(p.products)}
   </article>`).join('') : '<p class="empty">Постов пока нет</p>';
 }
+// листание фото поста стрелками (на ПК нет свайпа)
 $('#posts').onclick = e => {
+  const b = e.target.closest('[data-pg]');
+  if (!b) return;
+  const box = b.parentElement.querySelector('.post-imgs');
+  box.scrollBy({ left: +b.dataset.pg * box.clientWidth, behavior: 'smooth' });
 };
+$('#posts').addEventListener('scroll', e => {
+  const box = e.target;
+  if (!box.classList || !box.classList.contains('post-imgs')) return;
+  const i = Math.round(box.scrollLeft / box.clientWidth), n = box.children.length, gal = box.parentElement;
+  gal.querySelector('.prev').disabled = i <= 0;
+  gal.querySelector('.next').disabled = i >= n - 1;
+  const c = gal.nextElementSibling?.querySelector('.pc-i');
+  if (c) c.textContent = i + 1;
+}, true);
 
 // --- галерея и просмотр фото ---
 const galIndex = () => Math.round($('#gallery').scrollLeft / $('#gallery').clientWidth);

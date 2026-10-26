@@ -17,3 +17,20 @@ test('FORUM пост из админки виден в ленте с датой,
   expect((await request.delete('/api/posts/' + post.id)).status()).toBe(200);
   expect((await page.request.post('/api/posts', { data: { title: 'x' } })).status()).toBe(401);
 });
+
+test('FORUM на ПК фото поста листаются стрелками', async ({ page, request }, info) => {
+  test.skip(info.project.name === 'mobile');
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  const p = await (await request.post('/api/posts', { data: { title: 'ARROWS', text: 't', images: ['/demo/tee.svg', '/demo/pant.svg', '/demo/hoodie.svg'] } })).json();
+  await page.goto('/#/forum');
+  const post = page.locator('.post').filter({ hasText: 'ARROWS' });
+  await expect(post.locator('.post-count')).toHaveText('1 / 3');
+  await post.getByRole('button', { name: 'Следующее фото' }).click();
+  await expect(post.locator('.post-count')).toHaveText('2 / 3');
+  await post.getByRole('button', { name: 'Следующее фото' }).click();
+  await expect(post.locator('.post-count')).toHaveText('3 / 3');
+  await expect(post.getByRole('button', { name: 'Следующее фото' })).toBeDisabled();
+  await post.getByRole('button', { name: 'Предыдущее фото' }).click();
+  await expect(post.locator('.post-count')).toHaveText('2 / 3');
+  await request.delete('/api/posts/' + p.id);
+});
