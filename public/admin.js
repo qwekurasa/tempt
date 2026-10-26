@@ -497,7 +497,7 @@ function renderBulkSelects() {
   $('#bulk-kind').innerHTML = '<option value="">— без категории —</option>' + kinds.map(k => `<option>${esc(k)}</option>`).join('');
   $('#bulk-cat').innerHTML = Object.entries(Shipping.CATS).map(([k, l]) => `<option value="${k}"${k === 'm' ? ' selected' : ''}>${esc(l)}</option>`).join('');
 }
-const norm = t => String(t || '').trim().toLowerCase();
+const norm = t => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
 function addDraftFiles(files, flat) {
   const imgs = [...files].filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
   if (flat) {
