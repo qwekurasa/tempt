@@ -289,6 +289,67 @@ app.post('/api/products/delete', auth, serial(async (req, res) => {
   res.json({ ok: true, removed: removed.length });
 }));
 
+// --- импорт ассортимента с Yupoo (сервер забирает страницы и фото: браузеру мешают CORS и Referer) ---
+const YUPOO = /^https:\/\/([a-z0-9-]+)\.x\.yupoo\.com\//i;
+const unesc = t => t.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ');
+async function yupooGet(url) {
+  const m = YUPOO.exec(url);
+  if (!m) throw Object.assign(new Error('Нужна ссылка вида https://имя.x.yupoo.com/...'), { status: 400 });
+  const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36', 'Accept-Language': 'ru,en;q=0.8', Referer: `https://${m[1]}.x.yupoo.com/` } });
+  if (!r.ok) throw Object.assign(new Error('Yupoo ответил ' + r.status), { status: 502 });
+  return { html: await r.text(), origin: `https://${m[1]}.x.yupoo.com` };
+}
+app.get('/api/yupoo/list', auth, async (req, res) => {
+  try {
+    const base = S(req.query.url).replace(/[?#].*$/, '');
+    if (/\/albums\/\d+/.test(base)) return res.json({ albums: [{ url: base, title: '' }] });
+    const albums = new Map();
+    for (let page = 1; page <= 30; page++) {
+      const { html, origin } = await yupooGet(`${base}?page=${page}`);
+      const before = albums.size;
+      for (const tag of html.match(/<a\b[^>]*class="album__main"[^>]*>/g) || []) {
+        const href = /href="([^"]+)"/.exec(tag)?.[1], title = /title="([^"]*)"/.exec(tag)?.[1] || '';
+        const id = /\/albums\/(\d+)/.exec(href || '')?.[1];
+        if (id && !albums.has(id)) albums.set(id, { url: `${origin}/albums/${id}?uid=1`, title: unesc(title).trim() });
+      }
+      if (albums.size === before) break;
+    }
+    res.json({ albums: [...albums.values()] });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message });
+  }
+});
+app.get('/api/yupoo/ping', async (req, res) => { // временная проверка доступа к Yupoo с Vercel
+  try { const { html } = await yupooGet('https://noghost.x.yupoo.com/collections/5157086?page=1'); const img = await fetch('https://photo.yupoo.com/noghost/15e81d6f4a/a87119d8.jpeg', { headers: { Referer: 'https://noghost.x.yupoo.com/' } }); res.json({ albums: (html.match(/class="album__main"/g) || []).length, img: img.status, size: (await img.arrayBuffer()).byteLength }); } catch (e) { res.json({ error: e.message }); }
+});
+app.get('/api/yupoo/album', auth, async (req, res) => {
+  try {
+    const { html } = await yupooGet(S(req.query.url));
+    const title = unesc((/class="showalbumheader__gallerytitle"[^>]*>([\s\S]*?)<\//.exec(html)?.[1] || '').replace(/<[^>]+>/g, '')).trim();
+    const descHtml = /class="showalbumheader__gallerysubtitle[^"]*"[^>]*>([\s\S]*?)<\/div>/.exec(html)?.[1] || '';
+    const desc = unesc(descHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+    const photos = [...new Set([...html.matchAll(/data-origin-src="(https:\/\/photo\.yupoo\.com\/[^"]+)"/g)].map(m => m[1]))];
+    res.json({ title, desc, photos });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message });
+  }
+});
+app.get('/api/yupoo/img', auth, async (req, res) => {
+  const u = S(req.query.u);
+  if (!/^https:\/\/photo\.yupoo\.com\//.test(u)) return res.status(400).end();
+  const owner = /photo\.yupoo\.com\/([^/]+)\//.exec(u)[1];
+  const get = url => fetch(url, { headers: { Referer: `https://${owner}.x.yupoo.com/`, 'User-Agent': 'Mozilla/5.0' } });
+  let r = await get(u);
+  if (!r.ok) return res.status(502).end();
+  let buf = Buffer.from(await r.arrayBuffer());
+  if (buf.length > 4.3 * 1024 * 1024) { // ответ функции Vercel ограничен 4.5 МБ — берём версию поменьше
+    r = await get(u.replace(/\/[^/]+$/, '/big.jpg'));
+    if (r.ok) buf = Buffer.from(await r.arrayBuffer());
+  }
+  res.set('Content-Type', r.headers.get('content-type') || 'image/jpeg');
+  res.send(buf);
+});
+
 // --- форум: посты с фото и текстом ---
 let memPosts = []; // без Blob (локально, e2e) — в памяти
 async function loadPosts(fresh) {

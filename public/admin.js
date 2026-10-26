@@ -674,3 +674,109 @@ $('#bulk-go').onclick = async () => {
     renderDrafts();
   }
 };
+
+// --- импорт с Yupoo ---
+let ypItems = [];
+const loadZip = () => window.fflate ? Promise.resolve(window.fflate) : new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = '/fflate.js'; sc.onload = () => ok(window.fflate); sc.onerror = () => no(new Error('Не удалось загрузить архиватор')); document.head.append(sc); });
+const ypName = t => t.replace(/["“”«»'`]/g, ' ').replace(/[\\/:*?<>|]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase().slice(0, 100) || 'ТОВАР';
+function ypParse(a, rate) {
+  const desc = a.desc || '';
+  const cny = Number((/(?:price|цена)[^\d¥￥]{0,10}[¥￥]?\s*(\d+(?:[.,]\d+)?)/i.exec(desc) || /[¥￥]\s*(\d+(?:[.,]\d+)?)/.exec(desc) || /[¥￥]\s*(\d+)/.exec(a.title) || [])[1]?.replace(',', '.')) || 0;
+  const sizes = ((/sizes?\s*[:：]\s*([^\n]+)/i.exec(desc) || [])[1] || '').split(/[\s,/|]+/).filter(x => /^(XXS|XS|S|M|L|XL|XXL|XXXL|[2-5]XL|\d{2}(\.5)?)$/i.test(x)).map(x => x.toUpperCase());
+  const det = (/【Details】([\s\S]*)/i.exec(desc) || [])[1] || '';
+  const description = det.split('\n').map(l => l.replace(/^[-•\s]+/, '').trim()).filter(Boolean).join('\n');
+  const markup = 1 + (Number($('#yp-markup').value) || 0) / 100, plus = Number($('#yp-plus').value) || 0;
+  const price = cny && rate ? Math.ceil((cny * rate * markup + plus) / 10) * 10 : '';
+  return { name: ypName(a.title), cny, price, sizes: [...new Set(sizes)].join(', '), description, photos: a.photos.slice(0, Math.min(10, Math.max(1, Number($('#yp-max').value) || 10))), link: a.url };
+}
+$('#yp-go').onclick = async () => {
+  const btn = $('#yp-go'), st = $('#yp-status');
+  btn.disabled = true;
+  $('#yp-actions').hidden = true;
+  ypItems = [];
+  try {
+    st.textContent = 'Читаю список альбомов…';
+    const { albums } = await api('/api/yupoo/list?url=' + encodeURIComponent($('#yp-url').value.trim()));
+    if (!albums.length) throw new Error('Альбомы не найдены — проверьте ссылку');
+    const rate = Number($('#rates').cny.value) || 0;
+    const queue = albums.slice();
+    let n = 0;
+    await Promise.all([0, 1, 2, 3].map(async () => {
+      for (let al; (al = queue.shift()); ) {
+        const a = await api('/api/yupoo/album?url=' + encodeURIComponent(al.url));
+        if (a.photos.length) ypItems.push({ ...ypParse({ ...a, title: a.title || al.title, url: al.url }, rate), order: albums.indexOf(al) });
+        st.textContent = `Собрано альбомов: ${++n} из ${albums.length}`;
+      }
+    }));
+    ypItems.sort((a, b) => a.order - b.order);
+    const seen = new Map(); // одинаковые названия → разные папки
+    for (const it of ypItems) { const k = it.name; seen.set(k, (seen.get(k) || 0) + 1); if (seen.get(k) > 1) it.name = `${k} ${seen.get(k)}`; }
+    const photos = ypItems.reduce((s, it) => s + it.photos.length, 0);
+    st.textContent = `Готово: ${ypItems.length} товаров, ${photos} фото.${rate ? '' : ' Курс ¥ в настройках не задан — цены в ₽ пустые.'}`;
+    $('#yp-actions').hidden = !ypItems.length;
+  } catch (err) {
+    st.textContent = 'Ошибка: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+async function ypFetchPhotos(it, i) {
+  const out = [];
+  for (const [j, u] of it.photos.entries()) {
+    const r = await fetch('/api/yupoo/img?u=' + encodeURIComponent(u));
+    if (!r.ok) continue;
+    const b = await r.blob();
+    out.push(new File([b], `${String(j + 1).padStart(2, '0')}.${(b.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')}`, { type: b.type || 'image/jpeg' }));
+  }
+  return out;
+}
+async function ypAllPhotos(progress) {
+  const res = [], queue = ypItems.map((it, i) => i);
+  let n = 0;
+  await Promise.all([0, 1, 2, 3].map(async () => { for (let i; (i = queue.shift()) !== undefined; ) { res[i] = await ypFetchPhotos(ypItems[i]); progress(++n); } }));
+  return res;
+}
+const ypRow = it => [it.name, it.name, '', it.price, it.sizes, '', '', '', '', '', it.description, '', '', '', ''];
+$('#yp-zip').onclick = async () => {
+  const st = $('#yp-status'), btn = $('#yp-zip');
+  btn.disabled = true;
+  try {
+    const [X, Z] = await Promise.all([loadXL(), loadZip()]);
+    const files = await ypAllPhotos(n => (st.textContent = `Скачиваю фото: товар ${n} из ${ypItems.length}`));
+    st.textContent = 'Собираю архив…';
+    const ws = X.utils.aoa_to_sheet([[...XL_COLS, 'Цена поставщика, ¥', 'Ссылка Yupoo'], ...ypItems.map(it => [...ypRow(it), it.cny || '', it.link])]);
+    ws['!cols'] = [...XL_COLS, '', ''].map((c, i) => ({ wch: [30, 30, 14, 10, 14, 10, 22, 18, 8, 14, 40, 12, 30, 12, 10, 12, 40][i] }));
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, 'Товары');
+    const tree = { 'товары.xlsx': [new Uint8Array(X.write(wb, { type: 'array', bookType: 'xlsx' })), { level: 6 }], 'фото': {} };
+    for (const [i, it] of ypItems.entries()) {
+      const dir = tree['фото'][it.name] = {};
+      for (const f of files[i]) dir[f.name] = [new Uint8Array(await f.arrayBuffer()), { level: 0 }];
+    }
+    const zip = Z.zipSync(tree);
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([zip], { type: 'application/zip' })), download: 'yupoo-товары.zip' });
+    a.click();
+    st.textContent = `Архив готов: ${ypItems.length} товаров. Уберите фон в папке «фото», затем загрузите «товары.xlsx» и папку «фото» в разделе «Через Excel».`;
+  } catch (err) {
+    st.textContent = 'Ошибка: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+$('#yp-add').onclick = async () => {
+  const st = $('#yp-status'), btn = $('#yp-add');
+  btn.disabled = true;
+  try {
+    const files = await ypAllPhotos(n => (st.textContent = `Скачиваю фото: товар ${n} из ${ypItems.length}`));
+    for (const [i, it] of ypItems.entries()) {
+      const r = ypRow(it);
+      drafts.push({ name: it.name, price: String(it.price || ''), files: files[i], row: { folder: '', name: it.name, brand: '', price: String(it.price || ''), sizes: it.sizes, color: '', kinds: [], cat: '', weight: '', eta: '', description: it.description, sizeHead: '', sizeTable: '', soldOut: false, sku: '' } });
+    }
+    renderDrafts();
+    st.textContent = `Добавлено в список: ${ypItems.length}. Заполните общий бренд и нажмите «Создать товары».`;
+  } catch (err) {
+    st.textContent = 'Ошибка: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+};

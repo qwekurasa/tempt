@@ -108,7 +108,26 @@
 
   <div class="wrap" id="bulk-tab" hidden>
     <div class="form" style="max-width:none">
-      <div><b>Через Excel — самый быстрый способ</b></div>
+      <div><b>Импорт с Yupoo</b></div>
+      <p class="note">Вставьте ссылку на категорию/коллекцию или альбом Yupoo. Сайт соберёт все товары: название, цену (¥ → ₽ по курсу из настроек), размеры, описание и фото. Дальше — скачать архив (папки с фото + заполненный Excel), чтобы убрать фон, или сразу добавить в список ниже.</p>
+      <div class="g2">
+        <label>Ссылка Yupoo<input id="yp-url" placeholder="https://имя.x.yupoo.com/collections/..."></label>
+        <div class="g2">
+          <label>Наценка, %<input id="yp-markup" type="number" value="0" step="1"></label>
+          <label>+ к цене, ₽<input id="yp-plus" type="number" value="0" step="10"></label>
+        </div>
+      </div>
+      <div class="g2">
+        <label>Фото на товар, не больше<input id="yp-max" type="number" value="10" min="1" max="10"></label>
+        <button class="btn" type="button" id="yp-go">Собрать товары</button>
+      </div>
+      <div class="mute" id="yp-status"></div>
+      <div class="g2" id="yp-actions" hidden>
+        <button class="btn" type="button" id="yp-zip">Скачать архив: папки + Excel</button>
+        <button class="btn" type="button" id="yp-add">Сразу в список (без удаления фона)</button>
+      </div>
+
+      <div style="margin-top:8px"><b>Через Excel</b></div>
       <p class="note">1) Скачайте шаблон и заполните: одна строка = один товар. 2) Загрузите таблицу. 3) Выберите папку с фото: в ней по подпапке на товар, имя подпапки — как в столбце «Папка с фото» (или как название). 4) Нажмите «Создать товары».</p>
       <div class="g2">
         <button class="btn" type="button" id="xl-template">Скачать шаблон Excel</button>

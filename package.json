@@ -18,6 +18,7 @@
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.64.1",
     "esbuild": "^0.24.0",
+    "fflate": "^0.8.2",
     "xlsx": "^0.18.5"
   },
   "private": true
