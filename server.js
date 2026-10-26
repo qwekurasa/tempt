@@ -319,9 +319,6 @@ app.get('/api/yupoo/list', auth, async (req, res) => {
     res.status(e.status || 500).json({ error: e.message });
   }
 });
-app.get('/api/yupoo/ping', async (req, res) => { // временная проверка доступа к Yupoo с Vercel
-  try { const { html } = await yupooGet('https://noghost.x.yupoo.com/collections/5157086?page=1'); const img = await fetch('https://photo.yupoo.com/noghost/15e81d6f4a/a87119d8.jpeg', { headers: { Referer: 'https://noghost.x.yupoo.com/' } }); res.json({ albums: (html.match(/class="album__main"/g) || []).length, img: img.status, size: (await img.arrayBuffer()).byteLength }); } catch (e) { res.json({ error: e.message }); }
-});
 app.get('/api/yupoo/album', auth, async (req, res) => {
   try {
     const { html } = await yupooGet(S(req.query.url));
