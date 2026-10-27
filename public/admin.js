@@ -284,6 +284,8 @@ $('#admin-tabs').onclick = e => {
   $('#products-tab').hidden = t !== 'products';
   $('#forum-tab').hidden = t !== 'forum';
   $('#bulk-tab').hidden = t !== 'bulk';
+  $('#promos-tab').hidden = t !== 'promos';
+  if (t === 'promos') loadPromoList();
   if (t === 'bulk') renderBulkSelects();
   if (t === 'forum') { loadPosts(); renderPick(); }
   $('#rates').hidden = t !== 'settings';
@@ -778,5 +780,47 @@ $('#yp-add').onclick = async () => {
     st.textContent = 'Ошибка: ' + err.message;
   } finally {
     btn.disabled = false;
+  }
+};
+
+// --- промокоды ---
+let promoList = [];
+async function loadPromoList() {
+  promoList = await api('/api/promos');
+  renderPromoList();
+}
+function renderPromoList() {
+  const bonus = Number($('#rates').refBonus.value) || 0;
+  const shown = promoList.filter(p => p.uses.length || !p.ownerOrder);
+  $('#promo-count').textContent = shown.length;
+  $('#promo-list').innerHTML = shown.map(p => {
+    const owed = p.ownerOrder ? p.uses.length - (p.paid || 0) : 0;
+    return `<div class="row" style="grid-template-columns:1fr auto">
+      <div><div><b>${esc(p.code)}</b>${p.off ? ' · <span class="mute">выключен</span>' : ''}</div>
+      <div class="mute">${p.ownerOrder ? 'код заказа #' + esc(p.ownerOrder) : esc(p.note || 'свой код')}${p.discount ? ' · скидка ' + rub(p.discount) : ''} · заказов по коду: ${p.uses.length}${p.uses.length ? ' (' + p.uses.map(u => '#' + esc(u.order)).join(', ') + ')' : ''}${p.ownerOrder ? ` · бонусов выдано: ${p.paid || 0}${owed ? `, <b>к выдаче: ${owed} × ${rub(bonus)}</b>` : ''}` : ''}</div></div>
+      <div class="actions">${owed ? `<button data-paid="${esc(p.code)}">+1 выдано</button>` : ''}<button data-off="${esc(p.code)}">${p.off ? 'Включить' : 'Выключить'}</button></div>
+    </div>`;
+  }).join('') || '<p class="mute">Пока ни одного заказа по промокодам</p>';
+}
+$('#promo-list').onclick = async e => {
+  const { paid, off } = e.target.dataset;
+  const p = promoList.find(x => x.code === (paid || off));
+  if (!p) return;
+  const body = paid ? { paid: (p.paid || 0) + 1 } : { off: !p.off };
+  Object.assign(p, await api('/api/promos/' + encodeURIComponent(p.code), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }));
+  renderPromoList();
+};
+$('#promo-form').onsubmit = async e => {
+  e.preventDefault();
+  $('#promo-err').textContent = '';
+  try {
+    const f = e.target;
+    const p = await api('/api/promos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: f.code.value, discount: f.discount.value, note: f.note.value }) });
+    promoList.unshift(p);
+    f.reset();
+    renderPromoList();
+    $('#promo-err').textContent = `Создан ${p.code}. Ссылка: ${location.origin}/?ref=${p.code}`;
+  } catch (err) {
+    $('#promo-err').textContent = err.message;
   }
 };

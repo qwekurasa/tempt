@@ -43,3 +43,29 @@ test('F01-E7 корзина переживает перезагрузку', asyn
   await page.reload();
   await expect(page.locator('#cart-count')).toHaveText('1');
 });
+
+test('REF промокод друга: скидка, код покупателю, учёт в админке', async ({ page, request }, info) => {
+  test.skip(info.project.name === 'mobile');
+  // первый заказ — получаем свой код
+  await addTee(page);
+  await page.goto('/#/cart');
+  await page.getByRole('button', { name: 'Оформить заказ' }).click();
+  await expect(page.locator('#ref-code')).toHaveText(/^TEMPT-/);
+  const code = await page.locator('#ref-code').textContent();
+  expect(code).toMatch(/^TEMPT-[0-9A-F]{6}$/);
+  // друг приходит по ссылке
+  await page.evaluate(() => localStorage.clear());
+  await page.goto('/?ref=' + code + '#/');
+  await addTee(page);
+  await page.goto('/?ref=' + code + '#/cart');
+  await expect(page.locator('#promo-row')).toBeVisible();
+  await expect(page.locator('#promo-sum')).toHaveText('−300 ₽');
+  await page.getByRole('button', { name: 'Оформить заказ' }).click();
+  await expect(page.getByRole('heading', { name: /оформлен/ })).toBeVisible();
+  await request.post('/api/login', { data: { password: 'e2e-pass' } });
+  const list = await (await request.get('/api/promos')).json();
+  const mine = list.find(p => p.code === code);
+  expect(mine.uses).toHaveLength(1);
+  // неверный код
+  expect((await request.post('/api/order', { data: { items: [{ id: 'demo-tee-1', size: 'M', qty: 1 }], promo: 'NOPE' } })).status()).toBe(400);
+});

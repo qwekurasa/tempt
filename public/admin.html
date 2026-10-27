@@ -79,7 +79,7 @@
 
 <div id="panel" hidden>
   <header class="admin-head">
-    <nav class="tabs" id="admin-tabs"><button data-tab="products" class="on">Товары</button><button data-tab="bulk">Массово</button><button data-tab="forum">Форум</button><button data-tab="settings">Настройки</button></nav>
+    <nav class="tabs" id="admin-tabs"><button data-tab="products" class="on">Товары</button><button data-tab="bulk">Массово</button><button data-tab="forum">Форум</button><button data-tab="promos">Промокоды</button><button data-tab="settings">Настройки</button></nav>
     <a class="logo" href="/"><img src="/logo.svg" alt="TEMPT" width="56" height="28"></a>
     <button id="logout">Выйти</button>
   </header>
@@ -99,6 +99,11 @@
     <div style="margin-top:12px">Доставка по Китаю, ¥ за 1 вещь</div>
     <div class="g2" id="cat-fees"></div>
     <label>Категории одежды — по одной в строке (порядок = порядок в фильтре)<textarea name="types" rows="10"></textarea></label>
+    <div style="margin-top:12px">Приведи друга</div>
+    <div class="g2">
+      <label>Скидка другу по коду, ₽<input name="refFriend" type="number" min="1" step="1" required></label>
+      <label>Бонус пригласившему, ₽<input name="refBonus" type="number" min="1" step="1" required></label>
+    </div>
     <label>Шаблоны размерных сеток — по одному в строке, колонки через |<textarea name="sizeTemplates" rows="5"></textarea></label>
     <label>Ваш Telegram для связи с покупателями<input name="contact" placeholder="@username" maxlength="33"></label>
     <p class="note">Вес заказа считается от 1 кг. Тариф «от 10 кг» применяется, когда общий вес корзины 10 кг и больше.</p>
@@ -153,6 +158,22 @@
       <p class="err" id="bulk-err"></p>
       <button class="btn" type="button" id="bulk-go" disabled>Создать товары</button>
     </div>
+  </div>
+
+  <div class="wrap" id="promos-tab" hidden>
+    <form class="form" id="promo-form" style="max-width:none">
+      <div>Новый промокод (для блогера, канала, акции)</div>
+      <div class="g2">
+        <label>Код<input name="code" maxlength="24" placeholder="Пусто — создастся сам"></label>
+        <label>Скидка, ₽<input name="discount" type="number" min="0" step="1" placeholder="Пусто — как в настройках"></label>
+      </div>
+      <label>Для кого / заметка<input name="note" maxlength="100" placeholder="Например: канал @streetstyle"></label>
+      <p class="err" id="promo-err"></p>
+      <button class="btn">Создать код</button>
+    </form>
+    <p class="note" style="margin-top:16px">Каждый заказ автоматически получает свой код — его покупатель раздаёт друзьям. Здесь видно, сколько заказов пришло по каждому коду и сколько бонусов осталось выдать. Выдали бонус (скинули сумму с заказа пригласившего) — нажмите «+1 выдано».</p>
+    <div class="mute" style="margin:8px 0">Коды с заказами по ним: <span id="promo-count">0</span></div>
+    <div id="promo-list"></div>
   </div>
 
   <div class="wrap cols" id="forum-tab" hidden>

@@ -2,7 +2,7 @@ const { test, expect } = require('./fixtures');
 
 test.describe.configure({ mode: 'serial' });
 
-const S = { cny: 12, usd: 90, auto1: 6.2, auto10: 4.5, tk: 250, cat_s: 5, cat_m: 10, cat_l: 15, cat_xl: 20 };
+const S = { cny: 12, usd: 90, auto1: 6.2, auto10: 4.5, tk: 250, cat_s: 5, cat_m: 10, cat_l: 15, cat_xl: 20, refFriend: 300, refBonus: 300 };
 
 test('SHIP настройки сохраняются целиком, частичные — нет', async ({ request }) => {
   await request.post('/api/login', { data: { password: 'e2e-pass' } });

@@ -17,6 +17,7 @@ let sort = 'new';
 let current = null;
 let homeScroll = 0;
 let settings = {};
+let promo = null; // применённый промокод друга
 let cart = [];
 try { cart = JSON.parse(store('cart')) || []; } catch {}
 
@@ -252,7 +253,10 @@ function renderCart() {
   $('#ship-intl').textContent = !lines.length ? '—' : or(q.intl === null ? null : q.intl + q.tk);
   $('#ship-intl-info').textContent = !lines.length ? '' : `авто ~${q.kg} кг × ${q.rate} $ = ${or(q.intl)} + перекидка на ТК ${rub(q.tk)}`;
   $('#total-label').textContent = q.complete ? 'Итого, примерно' : 'Итого без неизвестных частей';
-  $('#total').textContent = rub(q.total);
+  const pd = promo ? Math.min(promo.discount, q.goods) : 0;
+  $('#promo-row').hidden = !pd;
+  $('#promo-sum').textContent = '−' + rub(pd);
+  $('#total').textContent = rub(q.total - pd);
   $('#ship-note').textContent = !lines.length ? '' : q.complete
     ? 'Доставка рассчитана примерно, по весу и курсу. Доставку по России посчитаем по приезду груза в РФ.'
     : 'Часть доставки посчитаем после оформления. Доставку по России — по приезду груза в РФ.';
@@ -403,6 +407,7 @@ $('#checkout').onsubmit = async e => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(e.target));
   data.items = cart;
+  if (promo) data.promo = promo.code;
   $('#err').textContent = '';
   $('#submit').disabled = true;
   try {
@@ -418,6 +423,17 @@ $('#checkout').onsubmit = async e => {
     const contact = settings.contact || 'tempt_sup';
     tgl.hidden = false;
     tgl.href = `https://t.me/${contact}?text=${encodeURIComponent('Здравствуйте! Заказ #' + j.id)}`;
+    $('#ref-box').hidden = !j.code;
+    if (j.code) {
+      const link = `${location.origin}/?ref=${j.code}`;
+      $('#ref-code').textContent = j.code;
+      $('#ref-terms').textContent = `Поделитесь кодом или ссылкой: друг получит −${rub(j.friend)} на первый заказ, а вы — ${rub(j.bonus)} на следующий заказ за каждого друга, который оформит заказ. Сохраните код — бонус начисляется по нему.`;
+      $('#ref-copy').onclick = () => navigator.clipboard?.writeText(link).then(() => ($('#ref-copy').textContent = 'Скопировано ✓'));
+      $('#ref-share').href = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Промокод ${j.code} — скидка ${rub(j.friend)} на первый заказ в TEMPT`)}`;
+    }
+    promo = null;
+    try { localStorage.removeItem('ref'); } catch {}
+    $('#promo').value = '';
     $('#co-main').hidden = true;
     $('#done').hidden = false;
     scrollTo(0, 0);
@@ -444,3 +460,31 @@ $('#theme').onclick = () => {
   document.documentElement.dataset.theme = t;
   try { localStorage.theme = t; } catch {}
 };
+
+// --- промокод друга: из ссылки ?ref=КОД или вручную ---
+async function applyPromo(code, silent) {
+  code = String(code || '').trim().toUpperCase();
+  $('#promo-note').textContent = '';
+  if (!code) { promo = null; return renderCart(); }
+  try {
+    const r = await fetch('/api/promo/' + encodeURIComponent(code));
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Промокод не найден');
+    promo = j;
+    $('#promo').value = j.code;
+    $('#promo-note').textContent = `Промокод применён: −${rub(j.discount)}`;
+    try { localStorage.setItem('ref', j.code); } catch {}
+  } catch (err) {
+    promo = null;
+    if (!silent) $('#promo-note').textContent = err.message;
+  }
+  renderCart();
+}
+$('#promo-btn').onclick = () => applyPromo($('#promo').value);
+$('#promo').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); applyPromo($('#promo').value); } };
+{
+  const fromUrl = new URLSearchParams(location.search).get('ref');
+  let saved = null;
+  try { if (fromUrl) localStorage.setItem('ref', fromUrl.toUpperCase()); saved = localStorage.getItem('ref'); } catch {}
+  if (fromUrl || saved) applyPromo(fromUrl || saved, true);
+}
