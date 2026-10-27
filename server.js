@@ -407,49 +407,6 @@ app.delete('/api/posts/:id', auth, serial(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// --- промокоды и рефералка: у каждого заказа свой код, друг получает скидку, пригласивший — бонус ---
-let memPromos = [];
-async function loadPromos(fresh) {
-  const host = blobHost();
-  if (!host) return structuredClone(memPromos);
-  const r = await fetch(`${host}/promos.json${fresh ? '?t=' + Date.now() : ''}`, { cache: 'no-store' });
-  if (r.status === 404) return [];
-  if (!r.ok) throw new Error('promos: ' + r.status);
-  return r.json();
-}
-const savePromos = items =>
-  !blobHost() ? (memPromos = structuredClone(items)) : put('promos.json', JSON.stringify(items), {
-    access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json', cacheControlMaxAge: 60,
-  });
-const promoCode = t => S(t).toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 24);
-const newCode = list => { let c; do c = 'TEMPT-' + crypto.randomBytes(3).toString('hex').toUpperCase(); while (list.some(p => p.code === c)); return c; };
-const promoDiscount = (p, st) => (p.discount > 0 ? p.discount : st.refFriend);
-
-app.get('/api/promo/:code', limit(30, 10 * 60e3), async (req, res) => {
-  const p = (await loadPromos()).find(x => x.code === promoCode(req.params.code) && !x.off);
-  if (!p) return res.status(404).json({ error: 'Промокод не найден' });
-  res.json({ code: p.code, discount: promoDiscount(p, await loadSettings()) });
-});
-app.get('/api/promos', auth, async (req, res) => res.json(await loadPromos(true)));
-app.post('/api/promos', auth, serial(async (req, res) => {
-  const list = await loadPromos(true);
-  const code = promoCode(req.body.code) || newCode(list);
-  if (list.some(p => p.code === code)) return res.status(400).json({ error: 'Такой код уже есть' });
-  const p = { code, note: S(req.body.note).slice(0, 100), discount: Math.max(0, Math.round(Number(req.body.discount) || 0)), uses: [], paid: 0, createdAt: Date.now() };
-  list.unshift(p);
-  await savePromos(list);
-  res.json(p);
-}));
-app.put('/api/promos/:code', auth, serial(async (req, res) => {
-  const list = await loadPromos(true);
-  const p = list.find(x => x.code === req.params.code);
-  if (!p) return res.status(404).json({ error: 'Не найден' });
-  if ('paid' in req.body) p.paid = Math.max(0, Math.min(p.uses.length, Math.round(Number(req.body.paid) || 0)));
-  if ('off' in req.body) p.off = !!req.body.off;
-  await savePromos(list);
-  res.json(p);
-}));
-
 const SERVICES = { ozon: 'Ozon', yandex: 'Яндекс', cdek: 'СДЭК' };
 
 app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
@@ -471,19 +428,13 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     qitems.push({ price: p.price, qty, weight: p.weight, cat: p.cat });
     lines.push({ p, size, color: colors.length > 1 ? color : colors[0] || '', qty });
   }
-  const st = await loadSettings();
-  const q = Shipping.quote(qitems, st);
-  const promos = await loadPromos(true);
-  const used = b.promo ? promos.find(x => x.code === promoCode(b.promo) && !x.off) : null;
-  if (b.promo && !used) return res.status(400).json({ error: 'Промокод не найден' });
-  const discount = used ? Math.min(promoDiscount(used, st), q.goods) : 0;
+  const q = Shipping.quote(qitems, await loadSettings());
   lines.forEach((l, i) => (lines[i] = `${i + 1}. ${l.p.sku ? `[${l.p.sku}] ` : ''}${l.p.brand} — ${l.p.name}${l.color ? ' · ' + l.color : ''}${l.size ? ' · ' + l.size : ''} × ${l.qty} = ${rub(l.p.price * l.qty)} + ${q.lines[i].chinaCny} ¥ по Китаю${l.p.eta ? `, срок ${l.p.eta}` : ''}`));
   const or = (v, alt) => (v === null ? alt : rub(v));
   if (!lines.length) return res.status(400).json({ error: 'Корзина пуста' });
   if (!BOT_TOKEN || !CHAT_ID) return res.status(500).json({ error: 'Приём заказов не настроен' });
 
   const id = crypto.randomBytes(6).toString('hex').toUpperCase();
-  const myCode = newCode(promos);
   const text = [
     `🛒 Заказ #${id}`,
     '',
@@ -493,10 +444,8 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     `Доставка по Китаю: ${or(q.china, q.chinaCny + ' ¥')}`,
     `Авто до РФ (≈${q.weight || '?'} кг × ${q.rate} $): ${or(q.intl, 'не посчитано')}`,
     `Перекидка на ТК: ${rub(q.tk)}`,
-    ...(used ? [`Промокод ${used.code}: −${rub(discount)}${used.ownerOrder ? ` (пригласил заказ #${used.ownerOrder} — ему бонус ${rub(st.refBonus)})` : used.note ? ` (${used.note})` : ''}`] : []),
-    `Итого${q.complete ? ' (примерно)' : ' без неизвестных частей'}: ${rub(q.total - discount)}`,
+    `Итого${q.complete ? ' (примерно)' : ' без неизвестных частей'}: ${rub(q.total)}`,
     '',
-    `Код покупателя для друзей: ${myCode}`,
     'Покупатель напишет вам в Telegram с номером заказа.',
   ].join('\n');
 
@@ -506,18 +455,7 @@ app.post('/api/order', limit(5, 10 * 60e3), async (req, res) => {
     console.error('Telegram:', e.message);
     return res.status(502).json({ error: 'Не удалось отправить заказ, попробуйте позже' });
   }
-  // свой код покупателю + отметка использования кода друга; заказ уже отправлен, поэтому ошибки здесь не роняют ответ
-  try {
-    await serial(async () => {
-      const list = await loadPromos(true);
-      list.unshift({ code: myCode, ownerOrder: id, uses: [], paid: 0, createdAt: Date.now() });
-      if (used) list.find(x => x.code === used.code)?.uses.push({ order: id, at: Date.now() });
-      await savePromos(list);
-    })();
-  } catch (e) {
-    console.error('promos:', e.message);
-  }
-  res.json({ ok: true, id, code: myCode, discount, bonus: st.refBonus, friend: st.refFriend });
+  res.json({ ok: true, id });
 });
 
 app.use((err, req, res, next) => {
