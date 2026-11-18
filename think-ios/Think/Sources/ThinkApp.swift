@@ -137,7 +137,7 @@ struct RootScreen: View {
         }
         .background(Theme.paper.ignoresSafeArea())
         .sheet(isPresented: $editing) { IdeaEditor(existing: nil) }
-        .sheet(item: $selected) { idea in IdeaEditor(existing: idea) }
+        .sheet(item: $selected) { idea in IdeaDetailScreen(idea: idea) }
     }
     private func tabButton(_ label: String, symbol: String, index: Int) -> some View {
         Button { withAnimation(.easeInOut(duration: 0.22)) { tab = index } } label: {
@@ -155,7 +155,7 @@ struct BreathingStar: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
-            let breath = 1.0 + 0.065 * sin(t * 2 * .pi / 3.2)
+            let breath = CGFloat(1.0 + 0.065 * sin(t * 2 * .pi / 3.2))
             ZStack {
                 Canvas { context, size in
                     let middle = CGPoint(x: size.width/2, y: size.height/2)
@@ -164,9 +164,9 @@ struct BreathingStar: View {
                         let theta = fi * 2.399963229728653
                         let r = 45 + 100 * sqrt((fi + 0.5)/280)
                         let phase = sin(t * 1.8 + fi * 0.19)
-                        let rr = r * (1 + 0.055 * phase) * breath
-                        let x = middle.x + cos(theta) * rr
-                        let y = middle.y + sin(theta) * rr
+                        let rr = r * (1 + 0.055 * phase) * Double(breath)
+                        let x = middle.x + CGFloat(cos(theta) * rr)
+                        let y = middle.y + CGFloat(sin(theta) * rr)
                         let sz = CGFloat(0.55 + (1 + sin(fi * 10.3 + t * 2.0)) * 0.6)
                         let fade = max(0.09, 1 - (r - 45)/135)
                         let color = Color(red: 1 - (1-fade)*0.45, green: 0.82 - (1-fade)*0.5, blue: 0.18)
@@ -456,9 +456,9 @@ struct QRParticles: View {
                     let x1 = (Double(i % 24) + 0.5) / 24.0
                     let y1 = (Double(i / 24) + 0.5) / 24.0
                     let p = progress * progress * (3 - 2 * progress)
-                    let px = (x0 * (1-p) + x1 * p) * size.width
-                    let py = (y0 * (1-p) + y1 * p) * size.height
-                    let dot = Path(ellipseIn: CGRect(x: px, y: py, width: 1.7 + p, height: 1.7 + p))
+                    let px = CGFloat(x0 * (1-p) + x1 * p) * size.width
+                    let py = CGFloat(y0 * (1-p) + y1 * p) * size.height
+                    let dot = Path(ellipseIn: CGRect(x: px, y: py, width: CGFloat(1.7 + p), height: CGFloat(1.7 + p)))
                     context.fill(dot, with: .color(Theme.ink.opacity(0.3 + p * 0.6)))
                 }
             }
