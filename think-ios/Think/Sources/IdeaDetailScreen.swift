@@ -15,7 +15,7 @@ struct IdeaDetailScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 23) {
-                    Text(current.createdAt, format: .dateTime.day().month(.wide()).year())
+                    Text(current.createdAt, format: .dateTime.day().month(.wide).year())
                         .font(.system(size: 13)).foregroundStyle(Theme.muted)
                         .padding(.top, 25)
                     Text(current.text)
