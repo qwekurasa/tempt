@@ -117,3 +117,7 @@ for prefix in ("project","target"):
 content = '// !$*UTF8*$!\n{\n\tarchiveVersion = 1;\n\tclasses = {};\n\tobjectVersion = 56;\n\tobjects = {\n' + '\n'.join(objects) + '\n\t};\n\trootObject = ' + id("project") + ' /* Project */;\n}\n'
 (project_dir / "project.pbxproj").write_text(content)
 print("Generated Xcode project; Swift files:", len(sources))
+
+scheme_path = project_dir / "xcshareddata/xcschemes/Think.xcscheme"
+if scheme_path.exists():
+    scheme_path.write_text(scheme_path.read_text().replace("TEMP_TARGET_ID", id("target")))
