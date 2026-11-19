@@ -212,31 +212,85 @@ struct ReactiveEdgeGlow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0/30.0)) { timeline in
-            let time = timeline.date.timeIntervalSinceReferenceDate
-            let glow = listening ? (0.25 + Double(level) * 0.35 + 0.08 * sin(time * 2.4)) : 0.035
-            let spin = reduceMotion ? 0.0 : time * 13
-            RoundedRectangle(cornerRadius: 41, style: .continuous)
-                .stroke(
-                    AngularGradient(colors: [
-                        Theme.purple.opacity(0.32),
-                        Color(red: 0.76, green: 0.58, blue: 1),
-                        .white.opacity(0.5),
-                        Theme.purple.opacity(0.52),
-                        Color(red: 0.86, green: 0.77, blue: 1),
-                        Theme.purple.opacity(0.32)
-                    ], center: .center, angle: .degrees(spin)),
-                    lineWidth: 15
-                )
-                .blur(radius: 27)
-                .opacity(max(0, glow))
-                .padding(1)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 41, style: .continuous)
-                        .stroke(Theme.purple.opacity(listening ? 0.14 : 0.03), lineWidth: 2.4)
-                        .blur(radius: 7)
-                        .padding(1)
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            let t = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+            let breath = (sin(t * 1.85) + 1) * 0.5
+            let intensity = listening ? (0.64 + breath * 0.27 + Double(level) * 0.15) : 0.16
+
+            GeometryReader { geometry in
+                ZStack {
+                    // Four luminous ribbons travel around the complete screen,
+                    // not just the microphone. Enough opacity to remain visible
+                    // on a white background, while the center remains readable.
+                    HStack(spacing: 0) {
+                        LinearGradient(
+                            colors: [
+                                Theme.purple.opacity(0.65),
+                                Color(red: 0.88, green: 0.57, blue: 1).opacity(0.4),
+                                Color(red: 0.92, green: 0.75, blue: 1).opacity(0.3),
+                                .clear
+                            ],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                        .frame(width: 70)
+                        Spacer(minLength: 0)
+                        LinearGradient(
+                            colors: [
+                                .clear,
+                                Color(red: 0.89, green: 0.70, blue: 1).opacity(0.34),
+                                Color(red: 0.66, green: 0.31, blue: 0.96).opacity(0.6)
+                            ],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                        .frame(width: 70)
+                    }
+                    .blur(radius: 19)
+
+                    VStack(spacing: 0) {
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.60, green: 0.27, blue: 0.91).opacity(0.63),
+                                Color(red: 0.87, green: 0.69, blue: 1).opacity(0.36),
+                                .clear
+                            ],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                        .frame(height: 95)
+                        Spacer(minLength: 0)
+                        LinearGradient(
+                            colors: [
+                                .clear,
+                                Color(red: 0.82, green: 0.55, blue: 1).opacity(0.39),
+                                Color(red: 0.52, green: 0.25, blue: 0.91).opacity(0.64)
+                            ],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                        .frame(height: 93)
+                    }
+                    .blur(radius: 24)
+
+                    RoundedRectangle(cornerRadius: 36, style: .continuous)
+                        .stroke(
+                            AngularGradient(
+                                colors: [
+                                    Theme.purple.opacity(0.7),
+                                    Color(red: 0.86, green: 0.61, blue: 1).opacity(0.43),
+                                    Theme.purple.opacity(0.55),
+                                    Color(red: 0.94, green: 0.77, blue: 1).opacity(0.53),
+                                    Theme.purple.opacity(0.7)
+                                ],
+                                center: .center,
+                                angle: .degrees(reduceMotion ? 0 : t * 9)
+                            ),
+                            lineWidth: 5
+                        )
+                        .blur(radius: 8)
+                        .padding(3)
                 }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .opacity(min(1, intensity))
+                .scaleEffect(1 + CGFloat(0.008 * breath))
+            }
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
