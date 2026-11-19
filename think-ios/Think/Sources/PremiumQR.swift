@@ -46,6 +46,7 @@ struct ThinkQRMatrix {
 
 struct AnimatedThinkQR: View {
     let matrix: ThinkQRMatrix
+    var radiant: Bool = false
     @State private var began = Date()
 
     var body: some View {
@@ -69,7 +70,7 @@ struct AnimatedThinkQR: View {
                     let r = radius * CGFloat(0.7 + eased * 0.3)
                     let dot = Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2))
                     context.fill(dot, with: .color(
-                        Color(red: 0.38, green: 0.13, blue: 0.65).opacity(0.35 + eased * 0.65)
+                        (radiant ? Color(red: 0.65 + 0.26 * sin(i * 0.015), green: 0.20 + 0.12 * sin(i * 0.025), blue: 0.85) : Color(red: 0.38, green: 0.13, blue: 0.65)).opacity(0.35 + eased * 0.65)
                     ))
                 }
             }
@@ -81,6 +82,7 @@ struct AnimatedThinkQR: View {
 }
 
 struct PremiumQRScreen: View {
+    @EnvironmentObject private var store: IdeaStore
     let text: String
     @Environment(\.dismiss) private var dismiss
     private var matrix: ThinkQRMatrix? {
@@ -108,7 +110,7 @@ struct PremiumQRScreen: View {
                 .padding(.horizontal, 19).padding(.top, 13)
                 Spacer()
                 if let matrix {
-                    AnimatedThinkQR(matrix: matrix)
+                    AnimatedThinkQR(matrix: matrix, radiant: store.qrStyleUnlocked)
                         .frame(width: 302, height: 302)
                         .accessibilityAddTraits(.isImage)
                         .padding(.bottom, 29)
