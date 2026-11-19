@@ -92,6 +92,7 @@ struct PremiumRootScreen: View {
                 // A single completed capture always returns to the ideas list.
                 entry = nil
                 activeTab = 1
+                store.returnToAllIdeas()
             }
             .environmentObject(store)
         }
@@ -99,14 +100,24 @@ struct PremiumRootScreen: View {
             PremiumIdeaDetail(idea: idea)
                 .environmentObject(store)
         }
-        .onAppear { store.refreshLifecycle() }
+        .onAppear {
+            store.refreshLifecycle()
+            if activeTab == 1 { store.returnToAllIdeas() }
+        }
+        .onChange(of: activeTab) { _, selected in
+            if selected == 1 { store.returnToAllIdeas() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             store.refreshLifecycle()
+            if activeTab == 1 { store.returnToAllIdeas() }
         }
     }
 
     private func tab(_ symbol: String, _ caption: String, _ index: Int) -> some View {
         Button {
+            if index == 1 && activeTab == 1 {
+                store.returnToAllIdeas()
+            }
             withAnimation(.easeInOut(duration: 0.18)) { activeTab = index }
         } label: {
             VStack(spacing: 6) {
@@ -189,7 +200,9 @@ struct PremiumHomeScreen: View {
 
             Spacer(minLength: 15)
             Button(action: voice) {
-                ThinkOrb().frame(height: 260)
+                ThinkLivingOrb()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 300)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -213,7 +226,7 @@ struct PremiumHomeScreen: View {
                 Button(action: text) {
                     Label("Написать идею", systemImage: "pencil")
                 }.buttonStyle(ThinkActionStyle())
-                Text("10 звёзд за каждую новую идею · 7 дней на возвращение")
+                Text("10 звёзд за идею · вход в «Идеи» продлевает жизнь всем мыслям")
                     .font(.system(size: 11))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(Theme.muted)
@@ -545,33 +558,25 @@ struct PremiumStarsScreen: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Оформление")
+                    Text("Поделиться идеей")
                         .font(.system(size: 23, weight: .regular, design: .serif))
-                    HStack {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("Сияющий QR")
-                                .font(.system(size: 16, weight: .medium))
-                            Text("Новый градиент для QR-кодов")
+                    HStack(spacing: 12) {
+                        Image(systemName: "qrcode")
+                            .foregroundStyle(Theme.purple)
+                            .font(.system(size: 25, weight: .light))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("QR-коды бесплатны")
+                                .font(.system(size: 15, weight: .medium))
+                            Text("Пурпурное оформление доступно каждому")
                                 .font(.system(size: 12))
                                 .foregroundStyle(Theme.muted)
                         }
                         Spacer()
-                        if store.qrStyleUnlocked {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(Theme.purple)
-                        } else {
-                            Button("45 ★") {
-                                if store.unlockQR() {
-                                    feedback = "Сияющий QR разблокирован."
-                                }
-                            }
-                            .disabled(store.stars < 45)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Theme.ink)
-                            .padding(.horizontal, 14).padding(.vertical, 10)
-                            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 9))
-                        }
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Theme.purple)
                     }
+                    .padding(16)
+                    .background(Theme.panel, in: RoundedRectangle(cornerRadius: 12))
                 }
 
                 if !store.faded.isEmpty {
