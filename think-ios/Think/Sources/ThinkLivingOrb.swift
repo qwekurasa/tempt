@@ -17,7 +17,7 @@ private struct LivingOrbContour: Shape {
                 + wobble * sin(angle * 3 + phase * 0.68)
                 + wobble * 0.34 * sin(angle * 5 - phase * 0.46)
                 + wobble * 0.16 * sin(angle * 9 + phase * 0.33)
-            let radius = base * ripple
+            let radius = Double(base) * ripple
             let point = CGPoint(
                 x: center.x + CGFloat(cos(angle) * radius),
                 y: center.y + CGFloat(sin(angle) * radius)
@@ -83,7 +83,7 @@ private struct SlowSparks: View {
                              with: .color(tint.opacity(shimmer)))
                 if i % 3 == 0 {
                     let tiny = Path(ellipseIn: CGRect(
-                        x: px + 8 * sin(time + n), y: py - 6,
+                        x: CGFloat(px + 8 * sin(time + n)), y: CGFloat(py - 6),
                         width: 1.5, height: 1.5
                     ))
                     context.fill(tiny, with: .color(tint.opacity(shimmer * 0.70)))
@@ -127,8 +127,8 @@ struct ThinkLivingOrb: View {
                                 Color(red: 0.28, green: 0.11, blue: 0.53)
                             ],
                             center: UnitPoint(
-                                x: 0.28 + 0.12 * sin(t * 0.20),
-                                y: 0.26 + 0.08 * cos(t * 0.16)
+                                x: CGFloat(0.28 + 0.12 * sin(t * 0.20)),
+                                y: CGFloat(0.26 + 0.08 * cos(t * 0.16))
                             ),
                             startRadius: 6, endRadius: 146
                         ))
