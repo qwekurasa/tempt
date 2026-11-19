@@ -21,7 +21,7 @@ for y in range(1024):
     yn = (y - 512) / 400.0
     for x in range(1024):
         xn = (x - 512) / 400.0
-        # A warm-yellow, slightly organic four-point spark.
+        # A purple, slightly organic four-point spark.
         angle = math.atan2(yn, xn)
         radius = math.hypot(xn, yn)
         boundary = 0.24 + 0.34 * abs(math.cos(2 * angle)) ** 9
@@ -34,7 +34,7 @@ for y in range(1024):
                 (abs(x - 455) < 5 or abs(x - 570) < 5 or
                  (y > 840 and 455 < x < 570)))
         if star:
-            rgb.extend((255, 214, 53))
+            rgb.extend((173, 72, 230))
         elif outline or neck:
             rgb.extend((52, 52, 50))
         else:
@@ -91,15 +91,17 @@ base = {
 target = {
     "ASSETCATALOG_COMPILER_APPICON_NAME":"AppIcon",
     "CODE_SIGN_STYLE":"Automatic",
-    "CURRENT_PROJECT_VERSION":"1",
+    "CURRENT_PROJECT_VERSION":"2",
     "GENERATE_INFOPLIST_FILE":"YES",
     "INFOPLIST_KEY_CFBundleDisplayName":"Think",
     "INFOPLIST_KEY_LSApplicationCategoryType":'"public.app-category.productivity"',
     "INFOPLIST_KEY_UIApplicationSceneManifest_Generation":"YES",
     "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents":"YES",
     "INFOPLIST_KEY_UILaunchScreen_Generation":"YES",
+    "INFOPLIST_KEY_NSMicrophoneUsageDescription":'"Think использует микрофон для записи идей голосом."',
+    "INFOPLIST_KEY_NSSpeechRecognitionUsageDescription":'"Think превращает твою речь в текст идеи."',
     "IPHONEOS_DEPLOYMENT_TARGET":"17.0",
-    "MARKETING_VERSION":"1.0",
+    "MARKETING_VERSION":"1.1",
     "PRODUCT_BUNDLE_IDENTIFIER":"com.think.ideas.personal",
     "PRODUCT_NAME":'"$(TARGET_NAME)"',
     "SUPPORTED_PLATFORMS":'"iphoneos iphonesimulator"',
