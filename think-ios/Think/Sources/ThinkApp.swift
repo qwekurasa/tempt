@@ -113,7 +113,15 @@ final class IdeaStore: ObservableObject {
            let saved = try? decoder.decode([FadedIdea].self, from: data) {
             faded = saved
         }
-        qrStyleUnlocked = UserDefaults.standard.bool(forKey: "think-purple-qr-unlocked")
+        let paidPreviously = UserDefaults.standard.bool(forKey: "think-purple-qr-unlocked")
+        if !UserDefaults.standard.bool(forKey: "think-free-qr-migrated-v13") {
+            if paidPreviously {
+                // Make-good for anyone who purchased a QR look before it became free.
+                stars += 45
+            }
+            UserDefaults.standard.set(true, forKey: "think-free-qr-migrated-v13")
+        }
+        qrStyleUnlocked = true
         // Existing v1.1 ideas receive a new seven-day grace period after upgrading.
         for idea in ideas where energy[idea.id.uuidString] == nil {
             energy[idea.id.uuidString] = IdeaEnergy(
@@ -162,6 +170,16 @@ final class IdeaStore: ObservableObject {
         energy[key] = record
     }
 
+    func returnToAllIdeas() {
+        // A visit to the library counts as returning to every living idea.
+        // Daily review bonuses are awarded at most once per 24 hours per idea.
+        refreshLifecycle()
+        let ids = ideas.map(\.id)
+        for id in ids {
+            touch(id)
+        }
+    }
+
     func energyFor(_ idea: Idea) -> IdeaEnergy {
         energy[idea.id.uuidString] ??
         IdeaEnergy(lastTouched: Date(), lastReviewReward: Date(), accruedStars: 0)
@@ -208,8 +226,7 @@ final class IdeaStore: ObservableObject {
     }
 
     func unlockQR() -> Bool {
-        guard !qrStyleUnlocked, stars >= 45 else { return false }
-        stars -= 45
+        // QR sharing and its purple appearance are free for everyone.
         qrStyleUnlocked = true
         return true
     }
