@@ -206,120 +206,160 @@ struct ThinkOrb: View {
     }
 }
 
+struct ReactiveEdgeGlow: View {
+    let level: CGFloat
+    let listening: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0/30.0)) { timeline in
+            let time = timeline.date.timeIntervalSinceReferenceDate
+            let glow = listening ? (0.25 + Double(level) * 0.35 + 0.08 * sin(time * 2.4)) : 0.035
+            let spin = reduceMotion ? 0.0 : time * 13
+            RoundedRectangle(cornerRadius: 41, style: .continuous)
+                .stroke(
+                    AngularGradient(colors: [
+                        Theme.purple.opacity(0.32),
+                        Color(red: 0.76, green: 0.58, blue: 1),
+                        .white.opacity(0.5),
+                        Theme.purple.opacity(0.52),
+                        Color(red: 0.86, green: 0.77, blue: 1),
+                        Theme.purple.opacity(0.32)
+                    ], center: .center, angle: .degrees(spin)),
+                    lineWidth: 15
+                )
+                .blur(radius: 27)
+                .opacity(max(0, glow))
+                .padding(1)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 41, style: .continuous)
+                        .stroke(Theme.purple.opacity(listening ? 0.14 : 0.03), lineWidth: 2.4)
+                        .blur(radius: 7)
+                        .padding(1)
+                }
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 struct PremiumVoiceScreen: View {
     @EnvironmentObject private var store: IdeaStore
-    @Environment(\.dismiss) private var dismiss
     @StateObject private var speech = ThinkSpeechService()
-    @State private var showEditor = false
-    @State private var modeOrb = false
-    @State private var isPaused = false
+    let initialText: String
+    let onSwitchToText: (String) -> Void
+    let onFinished: () -> Void
+    let onCancel: () -> Void
+    @State private var committed = false
+
+    private var fullText: String {
+        let typed = initialText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let spoken = speech.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        return [typed, spoken].filter { !$0.isEmpty }.joined(separator: "\n")
+    }
 
     var body: some View {
         ZStack {
             Theme.paper.ignoresSafeArea()
-            RadialGradient(colors: [Theme.purpleLight.opacity(0.25), .clear], center: .bottom, startRadius: 30, endRadius: 390)
-                .ignoresSafeArea().allowsHitTesting(false)
+            RadialGradient(
+                colors: [Theme.purpleLight.opacity(0.17), .clear],
+                center: .bottom, startRadius: 5, endRadius: 440
+            ).ignoresSafeArea().allowsHitTesting(false)
+            ReactiveEdgeGlow(level: speech.level, listening: speech.listening)
             VStack(spacing: 0) {
                 HStack {
-                    Button { speech.stop(); dismiss() } label: {
+                    Button { speech.stop(); onCancel() } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 17, weight: .regular))
+                            .font(.system(size: 17))
                             .frame(width: 42, height: 42)
                     }
                     Spacer()
-                    Text("ГОЛОСОВАЯ ИДЕЯ").font(.system(size: 10, weight: .semibold))
-                        .tracking(2.1).foregroundStyle(Theme.muted)
+                    Text("ГОЛОСОВАЯ ИДЕЯ")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(2.1)
+                        .foregroundStyle(Theme.muted)
                     Spacer()
-                    Button { withAnimation(.easeInOut(duration: 0.4)) { modeOrb.toggle() } } label: {
-                        Image(systemName: modeOrb ? "text.alignleft" : "circle.hexagongrid")
-                            .font(.system(size: 17)).frame(width: 42, height: 42)
-                    }
+                    Color.clear.frame(width: 42, height: 42)
                 }
                 .foregroundStyle(Theme.ink)
-                .padding(.horizontal, 19).padding(.top, 16)
-                if modeOrb {
-                    Spacer(minLength: 14)
-                    ThinkOrb().padding(.bottom, 13)
-                    Text(speech.transcript.isEmpty ? "Твоя идея начинается\nс одной мысли." : "Я слышу твою мысль.")
-                        .font(.system(size: 26, weight: .regular))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Theme.ink)
-                    Text("Продолжай говорить — я записываю.")
-                        .font(.system(size: 13)).foregroundStyle(Theme.muted).padding(.top, 12)
-                    if !speech.transcript.isEmpty {
-                        ScrollView {
-                            Text(speech.transcript).font(.system(size: 17)).foregroundStyle(Theme.muted)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }.frame(maxHeight: 100).padding(.horizontal, 28).padding(.top, 24)
+                .padding(.horizontal, 19)
+                .padding(.top, 12)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        Text(fullText.isEmpty
+                             ? "Расскажи идею.\nЯ сохраню\nкаждую мысль."
+                             : fullText)
+                            .font(.system(size: 31, weight: .regular))
+                            .tracking(-0.8)
+                            .lineSpacing(3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .foregroundStyle(
+                                LinearGradient(colors: [
+                                    Theme.ink, Theme.ink.opacity(0.96),
+                                    Theme.muted.opacity(0.52)
+                                ], startPoint: .top, endPoint: .bottom)
+                            )
+                            .contentTransition(.opacity)
+                            .animation(.easeOut(duration: 0.24), value: fullText)
+                            .padding(.top, 58)
+                        if let message = speech.message {
+                            Text(message)
+                                .font(.system(size: 14))
+                                .foregroundStyle(Theme.purple)
+                                .padding(.top, 8)
+                        }
                     }
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 22) {
-                            Text(speech.transcript.isEmpty
-                                ? "Расскажи идею.\nЯ сохраню\nкаждую мысль."
-                                : speech.transcript)
-                                .font(.system(size: 31, weight: .regular))
-                                .tracking(-0.8).lineSpacing(3)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .foregroundStyle(
-                                    LinearGradient(colors: [
-                                        Theme.ink, Theme.ink.opacity(0.94),
-                                        Theme.muted.opacity(0.50)
-                                    ], startPoint: .top, endPoint: .bottom)
-                                )
-                                .contentTransition(.opacity)
-                                .animation(.easeOut(duration: 0.24), value: speech.transcript)
-                                .padding(.top, 65)
-                            if let message = speech.message {
-                                Text(message).font(.system(size: 14))
-                                    .foregroundStyle(Theme.purple).padding(.top, 9)
-                            }
-                        }.padding(.horizontal, 29)
-                    }.scrollIndicators(.hidden)
-                }
-                Spacer(minLength: 10)
+                    .padding(.horizontal, 29)
+                }.scrollIndicators(.hidden)
+
                 Text(speech.listening ? "СЛУШАЮ..." : "ЗАПИСЬ НА ПАУЗЕ")
-                    .tracking(2.5).font(.system(size: 10, weight: .medium))
+                    .tracking(2.5)
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(Theme.muted)
                 Button {
                     if speech.listening {
                         speech.stop()
-                        isPaused = true
                     } else {
                         Task { await speech.start() }
-                        isPaused = false
                     }
                 } label: {
                     ThinkMicrophone(level: speech.level, listening: speech.listening)
-                }.buttonStyle(.plain).frame(height: 180)
-                if !speech.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                }.buttonStyle(.plain).frame(height: 173)
+
+                if !fullText.isEmpty {
                     Button {
+                        guard !committed else { return }
+                        committed = true
                         speech.stop()
-                        store.save(speech.transcript, existing: nil)
-                        dismiss()
+                        store.save(fullText, existing: nil)
+                        onFinished()
                     } label: {
-                        Text("Сохранить мысль").font(.system(size: 15, weight: .medium))
+                        Text("Сохранить мысль")
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(Theme.ink)
-                            .frame(maxWidth: .infinity).frame(height: 48)
-                            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 12))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 11))
                     }
+                    .disabled(committed)
                     .padding(.horizontal, 29)
                 }
+
                 Button {
                     speech.stop()
-                    showEditor = true
+                    onSwitchToText(fullText)
                 } label: {
                     Label("Перейти к тексту", systemImage: "keyboard")
-                        .font(.system(size: 13)).foregroundStyle(Theme.muted)
-                        .padding(.vertical, 15)
-                }.padding(.bottom, 9)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.muted)
+                        .padding(.vertical, 16)
+                }
+                .padding(.bottom, 8)
             }
         }
         .onAppear { Task { await speech.start() } }
         .onDisappear { speech.stop() }
-        .sheet(isPresented: $showEditor) {
-            PremiumTextEditor(initialText: speech.transcript, existing: nil)
-                .environmentObject(store)
-        }
     }
 }
