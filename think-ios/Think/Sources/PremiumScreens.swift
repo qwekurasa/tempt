@@ -60,8 +60,7 @@ struct PremiumRootScreen: View {
             VStack(spacing: 0) {
                 if activeTab == 0 {
                     PremiumHomeScreen(
-                        voice: { entry = .voice },
-                        text: { entry = .text }
+                        voice: { entry = .voice }
                     )
                 } else if activeTab == 1 {
                     PremiumIdeasScreen(
@@ -180,59 +179,75 @@ struct ThinkCaptureFlow: View {
 }
 
 struct PremiumHomeScreen: View {
-    @EnvironmentObject private var store: IdeaStore
     let voice: () -> Void
-    let text: () -> Void
+
+    private let ink = Color(red: 0.055, green: 0.047, blue: 0.075)
+    private let muted = Color(red: 0.49, green: 0.46, blue: 0.53)
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("ПРОСТРАНСТВО ИДЕЙ")
-                    .font(.system(size: 10, weight: .medium))
-                    .tracking(1.8).foregroundStyle(Theme.muted)
-                Spacer()
-                HStack(spacing: 5) {
-                    ThinkStar().fill(Theme.purple).frame(width: 15, height: 15)
-                    Text("\(store.stars)").font(.system(size: 14, weight: .medium))
-                }.foregroundStyle(Theme.ink)
-            }
-            .padding(.horizontal, 28).padding(.top, 23)
+        GeometryReader { geometry in
+            let orbSide = min(geometry.size.width * 0.86, geometry.size.height * 0.56, 350)
 
-            Spacer(minLength: 15)
-            Button(action: voice) {
-                ThinkLivingOrb()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 300)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Нажми на шар, чтобы начать голосовую запись")
+            VStack(spacing: 0) {
+                Spacer(minLength: 12)
 
-            Text("О чём ты думаешь?")
-                .font(.system(size: 29, weight: .regular))
-                .foregroundStyle(Theme.ink)
-                .tracking(-0.7)
-                .padding(.top, 3)
-            Text("Идея начинается с одной мысли.\nНе дай ей раствориться.")
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.muted)
-                .multilineTextAlignment(.center)
-                .lineSpacing(5).padding(.top, 11)
-            Spacer(minLength: 20)
-            VStack(spacing: 11) {
+                ThinkWordmark()
+                    .frame(height: 68)
+
+                Spacer(minLength: 18)
+
                 Button(action: voice) {
-                    Label("Записать голосом", systemImage: "mic")
-                }.buttonStyle(ThinkActionStyle(filled: true))
-                Button(action: text) {
-                    Label("Написать идею", systemImage: "pencil")
-                }.buttonStyle(ThinkActionStyle())
-                Text("10 звёзд за идею · вход в «Идеи» продлевает жизнь всем мыслям")
-                    .font(.system(size: 11))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Theme.muted)
-                    .padding(.top, 14).padding(.bottom, 20)
-            }.padding(.horizontal, 28)
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ThinkLivingOrb()
+                        .frame(width: orbSide, height: orbSide)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel("О чём ты думаешь? Нажми на шар, чтобы начать запись идеи")
+
+                Spacer(minLength: 18)
+
+                VStack(spacing: 10) {
+                    Text("О чём ты думаешь?")
+                        .font(.system(size: 27, weight: .medium, design: .rounded))
+                        .tracking(-0.75)
+                        .foregroundStyle(ink)
+
+                    Text("Нажми на шарик, чтобы поймать мысль.")
+                        .font(.system(size: 14, weight: .regular))
+                        .tracking(0.05)
+                        .foregroundStyle(muted)
+                }
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 22)
+
+                Spacer(minLength: 48)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Color(red: 0.995, green: 0.991, blue: 0.998).ignoresSafeArea())
+    }
+}
+
+private struct ThinkWordmark: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 1) {
+            Text("think")
+                .font(.system(size: 51, weight: .semibold, design: .rounded))
+                .tracking(-3.8)
+                .foregroundStyle(Color(red: 0.045, green: 0.04, blue: 0.06))
+            VStack(spacing: 1) {
+                Image(systemName: "sparkle")
+                    .font(.system(size: 17, weight: .semibold))
+                Image(systemName: "sparkle")
+                    .font(.system(size: 7, weight: .semibold))
+                    .offset(x: 8, y: -3)
+            }
+            .foregroundStyle(Color(red: 0.045, green: 0.04, blue: 0.06))
+            .padding(.top, 3)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Think")
     }
 }
 
