@@ -432,48 +432,200 @@ struct PremiumIdeasScreen: View {
 
 struct PremiumStarsScreen: View {
     @EnvironmentObject private var store: IdeaStore
+    @State private var feedback: String?
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 23) {
                 Text("Твои звёзды")
                     .font(.system(size: 34, weight: .regular, design: .serif))
                     .foregroundStyle(Theme.ink)
-                VStack(spacing: 16) {
+
+                VStack(spacing: 14) {
                     ThinkStar().fill(Theme.purple)
-                        .frame(width: 50, height: 50)
-                        .shadow(color: Theme.purple.opacity(0.20), radius: 22)
+                        .frame(width: 51, height: 51)
+                        .shadow(color: Theme.purple.opacity(0.22), radius: 22)
                     Text("\(store.stars)")
                         .font(.system(size: 73, weight: .light, design: .serif))
                         .foregroundStyle(Theme.ink)
-                    Text("искр вдохновения")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.muted)
+                    Text("звёзд за живые идеи")
+                        .font(.system(size: 13)).foregroundStyle(Theme.muted)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 50)
-                .background(Theme.panel, in: RoundedRectangle(cornerRadius: 15))
-                Text("Создавай и развивай")
-                    .font(.system(size: 22, design: .serif))
-                stat("Новая идея", "+5", "pencil")
-                stat("Редактирование мысли", "+2", "arrow.triangle.2.circlepath")
-                Text("Новые возможности за звёзды появятся позже.")
-                    .font(.system(size: 13)).foregroundStyle(Theme.muted)
-                    .padding(.top, 12)
+                .padding(.vertical, 36)
+                .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14))
+
+                if let feedback {
+                    Text(feedback)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.purple)
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 11))
+                }
+
+                VStack(alignment: .leading, spacing: 11) {
+                    Text("Как растут звёзды")
+                        .font(.system(size: 23, weight: .regular, design: .serif))
+                    rule("Новая идея", "+10", "plus")
+                    rule("Вернуться через сутки", "+2", "arrow.uturn.backward")
+                    rule("Изменить текст идеи", "+3", "pencil")
+                    Text("Если к идее не возвращаться 7 дней, она угасает и переходит в архив, а заработанные ею звёзды списываются. На шестой день идея подсвечивается в списке.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.muted)
+                        .lineSpacing(4)
+                }
+
+                VStack(alignment: .leading, spacing: 15) {
+                    Text("Защита идей")
+                        .font(.system(size: 23, weight: .regular, design: .serif))
+                    if store.ideas.isEmpty {
+                        Text("Создай первую идею, чтобы управлять её жизнью.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.muted)
+                    }
+                    ForEach(store.ideas) { idea in
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .top, spacing: 10) {
+                                ThinkStar().fill(Theme.purple)
+                                    .frame(width: 12, height: 12).padding(.top, 3)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(idea.text)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .lineLimit(2)
+                                    Text(store.isFading(idea)
+                                         ? "Идея угасает — осталось меньше суток"
+                                         : "Осталось примерно \(max(1, Int(ceil(store.remaining(idea) / 86400)))) дн.")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(store.isFading(idea) ? Theme.purple : Theme.muted)
+                                }
+                                Spacer()
+                            }
+                            HStack(spacing: 8) {
+                                shopButton("7 дней · 30", cost: 30) {
+                                    if store.protect(idea.id, days: 7, cost: 30) {
+                                        feedback = "Идея защищена ещё на 7 дней."
+                                    }
+                                }
+                                shopButton("30 дней · 80", cost: 80) {
+                                    if store.protect(idea.id, days: 30, cost: 80) {
+                                        feedback = "Идея защищена ещё на 30 дней."
+                                    }
+                                }
+                            }
+                            if !store.energyFor(idea).pinned {
+                                shopButton("Отметить важной · 20", cost: 20) {
+                                    if store.pin(idea.id) {
+                                        feedback = "Идея отмечена как важная."
+                                    }
+                                }
+                            } else {
+                                Label("Важная идея", systemImage: "pin.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Theme.purple)
+                            }
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.paper, in: RoundedRectangle(cornerRadius: 13))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 13)
+                                .stroke(Theme.line, lineWidth: 0.8)
+                        )
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Оформление")
+                        .font(.system(size: 23, weight: .regular, design: .serif))
+                    HStack {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Сияющий QR")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Новый градиент для QR-кодов")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.muted)
+                        }
+                        Spacer()
+                        if store.qrStyleUnlocked {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Theme.purple)
+                        } else {
+                            Button("45 ★") {
+                                if store.unlockQR() {
+                                    feedback = "Сияющий QR разблокирован."
+                                }
+                            }
+                            .disabled(store.stars < 45)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Theme.ink)
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 9))
+                        }
+                    }
+                }
+
+                if !store.faded.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Архив угасших")
+                            .font(.system(size: 23, weight: .regular, design: .serif))
+                        Text("Идеи исчезли из твоего списка, но ты ещё можешь вернуть их.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.muted)
+                        ForEach(store.faded) { fadedIdea in
+                            HStack(spacing: 12) {
+                                Text(fadedIdea.idea.text)
+                                    .font(.system(size: 14))
+                                    .lineLimit(2)
+                                Spacer()
+                                Button("Вернуть · 60") {
+                                    if store.recover(fadedIdea.id) {
+                                        feedback = "Идея восстановлена. У неё снова 7 дней."
+                                    }
+                                }
+                                .disabled(store.stars < 60)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Theme.purple)
+                            }
+                            .padding(.vertical, 12)
+                            Divider().overlay(Theme.line)
+                        }
+                    }
+                }
+                Text("Звёзды можно тратить только при достаточном балансе. Закрепление не предотвращает угасание; для этого нужна защита.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.muted)
+                    .lineSpacing(4)
+                    .padding(.bottom, 21)
             }
             .foregroundStyle(Theme.ink)
-            .padding(.horizontal, 27).padding(.top, 31)
-        }.scrollIndicators(.hidden)
+            .padding(.horizontal, 27)
+            .padding(.top, 28)
+        }
+        .scrollIndicators(.hidden)
+        .onAppear { store.refreshLifecycle() }
     }
-    private func stat(_ title: String, _ amount: String, _ symbol: String) -> some View {
+
+    private func shopButton(_ label: String, cost: Int, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Theme.panel, in: RoundedRectangle(cornerRadius: 9))
+        }
+        .disabled(store.stars < cost)
+        .opacity(store.stars < cost ? 0.45 : 1)
+        .buttonStyle(.plain)
+    }
+
+    private func rule(_ title: String, _ amount: String, _ symbol: String) -> some View {
         HStack {
-            Image(systemName: symbol)
-                .foregroundStyle(Theme.purple)
-                .frame(width: 31)
-            Text(title).font(.system(size: 15))
+            Image(systemName: symbol).foregroundStyle(Theme.purple).frame(width: 30)
+            Text(title).font(.system(size: 14))
             Spacer()
-            Text(amount).font(.system(size: 14))
-                .foregroundStyle(Theme.muted)
-        }.padding(.vertical, 8)
+            Text(amount).font(.system(size: 14)).foregroundStyle(Theme.muted)
+        }.padding(.vertical, 5)
     }
 }
 
