@@ -15,31 +15,73 @@ asset.mkdir(parents=True, exist_ok=True)
     "images": [{"filename": "ThinkIcon.png", "idiom": "universal", "platform": "ios", "size": "1024x1024"}],
     "info": {"author": "xcode", "version": 1}
 }))
-rgb = bytearray()
-for y in range(1024):
-    rgb.append(0)
-    yn = (y - 512) / 400.0
-    for x in range(1024):
-        xn = (x - 512) / 400.0
-        # A purple, slightly organic four-point spark.
-        angle = math.atan2(yn, xn)
-        radius = math.hypot(xn, yn)
-        boundary = 0.24 + 0.34 * abs(math.cos(2 * angle)) ** 9
-        star = radius < boundary
-        # Thin graphite outline of a thought shape surrounding the spark.
-        cx, cy = (x - 512) / 370.0, (y - 490) / 390.0
-        ellipse = cx * cx + cy * cy
-        outline = 0.985 < ellipse < 1.014 and y < 725
-        neck = (685 < y < 850 and
-                (abs(x - 455) < 5 or abs(x - 570) < 5 or
-                 (y > 840 and 455 < x < 570)))
-        if star:
-            rgb.extend((173, 72, 230))
-        elif outline or neck:
-            rgb.extend((52, 52, 50))
-        else:
-            rgb.extend((255, 255, 254))
-raw = zlib.compress(bytes(rgb), 9)
+# The icon recreates the irregular Think head outline from the brand mark.
+# It is rasterized from sampled cubic curves, not from a generic circle.
+side = 1024
+pixels = bytearray(bytes((255, 255, 254)) * (side * side))
+purple = (169, 69, 227)
+graphite = (42, 41, 47)
+
+# Four-tip star with a compact curved diamond center.
+for y in range(318, 626):
+    dy = (y - 470) / 135.0
+    for x in range(359, 673):
+        dx = (x - 516) / 135.0
+        radius = math.hypot(dx, dy)
+        angle = math.atan2(dy, dx)
+        limit = 0.20 + 0.40 * abs(math.cos(2 * angle)) ** 9
+        if radius < limit:
+            p = (y * side + x) * 3
+            pixels[p:p+3] = bytes(purple)
+
+def convert(point):
+    return (178 + 17.6 * point[0], 175 + 17.6 * point[1])
+
+def sample_cubic(a, b, c, d, steps=42):
+    points = []
+    for i in range(steps + 1):
+        t = i / steps
+        u = 1 - t
+        points.append((
+            u**3*a[0] + 3*u*u*t*b[0] + 3*u*t*t*c[0] + t**3*d[0],
+            u**3*a[1] + 3*u*u*t*b[1] + 3*u*t*t*c[1] + t**3*d[1]
+        ))
+    return points
+
+outline = []
+outline += sample_cubic((5,23),(3,11),(9,3),(16,3))
+outline += sample_cubic((16,3),(27,0),(34,6),(32,15))[1:]
+outline += sample_cubic((32,15),(34,21),(30,26),(23,29))[1:]
+outline += [(24,35),(16,35),(15,28)]
+outline += sample_cubic((15,28),(7,27),(6,27),(5,23))[1:]
+outline = [convert(p) for p in outline]
+
+# Draw softly anti-aliased charcoal outline by distance to path segments.
+stroke = 13.5
+for (x1,y1),(x2,y2) in zip(outline[:-1],outline[1:]):
+    vx, vy = x2-x1, y2-y1
+    length2 = max(1e-8, vx*vx + vy*vy)
+    left = max(0, int(min(x1,x2) - stroke))
+    right = min(side, int(max(x1,x2) + stroke) + 1)
+    top = max(0, int(min(y1,y2) - stroke))
+    bottom = min(side, int(max(y1,y2) + stroke) + 1)
+    for y in range(top,bottom):
+        for x in range(left,right):
+            wx, wy = x+0.5-x1, y+0.5-y1
+            t = max(0.0, min(1.0, (wx*vx+wy*vy)/length2))
+            dist = math.hypot(wx-t*vx, wy-t*vy)
+            alpha = max(0.0, min(1.0, (stroke/2 + 0.7 - dist)))
+            if alpha > 0:
+                p = (y*side+x)*3
+                for j in range(3):
+                    current = pixels[p+j]
+                    pixels[p+j] = int(current*(1-alpha) + graphite[j]*alpha)
+
+raw = zlib.compress(
+    b"".join(b"\x00" + pixels[y*side*3:(y+1)*side*3] for y in range(side)),
+    9
+)
+
 def png_chunk(tag, data):
     return struct.pack("!I", len(data)) + tag + data + struct.pack("!I", zlib.crc32(tag + data) & 0xffffffff)
 (asset / "ThinkIcon.png").write_bytes(
@@ -91,7 +133,7 @@ base = {
 target = {
     "ASSETCATALOG_COMPILER_APPICON_NAME":"AppIcon",
     "CODE_SIGN_STYLE":"Automatic",
-    "CURRENT_PROJECT_VERSION":"2",
+    "CURRENT_PROJECT_VERSION":"3",
     "GENERATE_INFOPLIST_FILE":"YES",
     "INFOPLIST_KEY_CFBundleDisplayName":"Think",
     "INFOPLIST_KEY_LSApplicationCategoryType":'"public.app-category.productivity"',
@@ -101,7 +143,7 @@ target = {
     "INFOPLIST_KEY_NSMicrophoneUsageDescription":'"Think использует микрофон для записи идей голосом."',
     "INFOPLIST_KEY_NSSpeechRecognitionUsageDescription":'"Think превращает твою речь в текст идеи."',
     "IPHONEOS_DEPLOYMENT_TARGET":"17.0",
-    "MARKETING_VERSION":"1.1",
+    "MARKETING_VERSION":"1.2",
     "PRODUCT_BUNDLE_IDENTIFIER":"com.think.ideas.personal",
     "PRODUCT_NAME":'"$(TARGET_NAME)"',
     "SUPPORTED_PLATFORMS":'"iphoneos iphonesimulator"',
