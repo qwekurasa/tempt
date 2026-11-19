@@ -87,19 +87,21 @@ struct PremiumRootScreen: View {
                 }
             }
         }
-        .sheet(item: $entry) { choice in
-            Group {
-                if choice == .voice {
-                    PremiumVoiceScreen()
-                } else {
-                    PremiumTextEditor(initialText: "", existing: nil)
-                }
+        .fullScreenCover(item: $entry) { choice in
+            ThinkCaptureFlow(start: choice) {
+                // A single completed capture always returns to the ideas list.
+                entry = nil
+                activeTab = 1
             }
             .environmentObject(store)
         }
-        .sheet(item: $chosenIdea) { idea in
+        .fullScreenCover(item: $chosenIdea) { idea in
             PremiumIdeaDetail(idea: idea)
                 .environmentObject(store)
+        }
+        .onAppear { store.refreshLifecycle() }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            store.refreshLifecycle()
         }
     }
 
@@ -108,14 +110,61 @@ struct PremiumRootScreen: View {
             withAnimation(.easeInOut(duration: 0.18)) { activeTab = index }
         } label: {
             VStack(spacing: 6) {
-                Image(systemName: symbol)
-                    .font(.system(size: 19, weight: .regular))
-                Text(caption)
-                    .font(.system(size: 10, weight: .medium))
+                Image(systemName: symbol).font(.system(size: 19, weight: .regular))
+                Text(caption).font(.system(size: 10, weight: .medium))
             }
             .frame(width: 56, height: 43)
             .foregroundStyle(activeTab == index ? Theme.purple : Theme.muted)
         }.buttonStyle(.plain)
+    }
+}
+
+struct ThinkCaptureFlow: View {
+    @Environment(\.dismiss) private var dismiss
+    let onCompleted: () -> Void
+    @State private var mode: ThinkEntry
+    @State private var draft: String = ""
+    @State private var completed = false
+
+    init(start: ThinkEntry, onCompleted: @escaping () -> Void) {
+        self.onCompleted = onCompleted
+        _mode = State(initialValue: start)
+    }
+
+    var body: some View {
+        Group {
+            if mode == .voice {
+                PremiumVoiceScreen(
+                    initialText: draft,
+                    onSwitchToText: { text in
+                        draft = text
+                        mode = .text
+                    },
+                    onFinished: finish,
+                    onCancel: { dismiss() }
+                )
+            } else {
+                PremiumTextEditor(
+                    initialText: draft,
+                    existing: nil,
+                    onFinished: finish,
+                    onCancel: { dismiss() },
+                    onSwitchToVoice: { text in
+                        draft = text
+                        mode = .voice
+                    }
+                )
+            }
+        }
+        .id(mode)
+        .background(Theme.paper.ignoresSafeArea())
+    }
+
+    private func finish() {
+        guard !completed else { return }
+        completed = true
+        onCompleted()
+        dismiss()
     }
 }
 
@@ -127,49 +176,48 @@ struct PremiumHomeScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("ВАШЕ ПРОСТРАНСТВО МЫСЛЕЙ")
+                Text("ПРОСТРАНСТВО ИДЕЙ")
                     .font(.system(size: 10, weight: .medium))
-                    .tracking(1.65).foregroundStyle(Theme.muted)
+                    .tracking(1.8).foregroundStyle(Theme.muted)
                 Spacer()
                 HStack(spacing: 5) {
-                    ThinkStar().fill(Theme.purple).frame(width: 14, height: 14)
-                    Text("\(store.stars)")
-                        .font(.system(size: 13, weight: .medium))
+                    ThinkStar().fill(Theme.purple).frame(width: 15, height: 15)
+                    Text("\(store.stars)").font(.system(size: 14, weight: .medium))
                 }.foregroundStyle(Theme.ink)
             }
             .padding(.horizontal, 28).padding(.top, 23)
 
-            Spacer(minLength: 30)
-            VStack(spacing: 16) {
-                ThinkLogo(compact: false)
-                    .scaleEffect(1.58)
-                    .padding(.bottom, 20)
-                Text("Поймай мысль,\nпока она не исчезла.")
-                    .font(.system(size: 30, weight: .regular))
-                    .tracking(-0.7)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Theme.ink)
-                    .padding(.top, 22)
-                Text("Говори, пиши, сохраняй и возвращайся\nк своим идеям в любой момент.")
-                    .font(.system(size: 14))
-                    .lineSpacing(4)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Theme.muted)
+            Spacer(minLength: 15)
+            Button(action: voice) {
+                ThinkOrb().frame(height: 260)
+                    .contentShape(Rectangle())
             }
-            Spacer()
-            VStack(spacing: 10) {
+            .buttonStyle(.plain)
+            .accessibilityLabel("Нажми на шар, чтобы начать голосовую запись")
+
+            Text("О чём ты думаешь?")
+                .font(.system(size: 29, weight: .regular))
+                .foregroundStyle(Theme.ink)
+                .tracking(-0.7)
+                .padding(.top, 3)
+            Text("Идея начинается с одной мысли.\nНе дай ей раствориться.")
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+                .lineSpacing(5).padding(.top, 11)
+            Spacer(minLength: 20)
+            VStack(spacing: 11) {
                 Button(action: voice) {
                     Label("Записать голосом", systemImage: "mic")
-                }
-                .buttonStyle(ThinkActionStyle(filled: true))
+                }.buttonStyle(ThinkActionStyle(filled: true))
                 Button(action: text) {
                     Label("Написать идею", systemImage: "pencil")
-                }
-                .buttonStyle(ThinkActionStyle())
-                Text("Идея становится реальной, когда ты её записал.")
+                }.buttonStyle(ThinkActionStyle())
+                Text("10 звёзд за каждую новую идею · 7 дней на возвращение")
                     .font(.system(size: 11))
+                    .multilineTextAlignment(.center)
                     .foregroundStyle(Theme.muted)
-                    .padding(.top, 16).padding(.bottom, 27)
+                    .padding(.top, 14).padding(.bottom, 20)
             }.padding(.horizontal, 28)
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -180,11 +228,17 @@ struct PremiumTextEditor: View {
     @Environment(\.dismiss) private var dismiss
     let existing: Idea?
     @State private var value: String
-    @State private var microphone = false
+    let onFinished: (() -> Void)?
+    let onCancel: (() -> Void)?
+    let onSwitchToVoice: ((String) -> Void)?
     @FocusState private var focused: Bool
 
-    init(initialText: String, existing: Idea?) {
+    init(initialText: String, existing: Idea?, onFinished: (() -> Void)? = nil,
+         onCancel: (() -> Void)? = nil, onSwitchToVoice: ((String) -> Void)? = nil) {
         self.existing = existing
+        self.onFinished = onFinished
+        self.onCancel = onCancel
+        self.onSwitchToVoice = onSwitchToVoice
         _value = State(initialValue: initialText)
     }
 
@@ -197,7 +251,7 @@ struct PremiumTextEditor: View {
             SoftPurpleAtmosphere(bottom: false)
             VStack(spacing: 0) {
                 HStack {
-                    Button { dismiss() } label: {
+                    Button { close() } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 17))
                             .frame(width: 40, height: 44)
@@ -208,7 +262,7 @@ struct PremiumTextEditor: View {
                         .tracking(2)
                         .foregroundStyle(Theme.muted)
                     Spacer()
-                    Button { dismiss() } label: {
+                    Button { close() } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 15))
                             .frame(width: 40, height: 44)
@@ -246,15 +300,17 @@ struct PremiumTextEditor: View {
                 .padding(.horizontal, 29)
 
                 HStack(spacing: 10) {
-                    Button { focused = false; microphone = true } label: {
+                    Button { focused = false; onSwitchToVoice?(value) } label: {
                         Image(systemName: "mic")
                             .font(.system(size: 19))
                             .frame(width: 53, height: 52)
                             .background(Theme.panel, in: RoundedRectangle(cornerRadius: 11))
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).disabled(onSwitchToVoice == nil)
+                        .opacity(onSwitchToVoice == nil ? 0.35 : 1)
                     Button {
+                        guard hasText else { return }
                         store.save(value, existing: existing)
-                        dismiss()
+                        if let onFinished { onFinished() } else { dismiss() }
                     } label: {
                         Text("Сохранить")
                             .font(.system(size: 15, weight: .medium))
@@ -270,9 +326,9 @@ struct PremiumTextEditor: View {
             }
         }
         .onAppear { focused = true }
-        .sheet(isPresented: $microphone) {
-            PremiumVoiceScreen().environmentObject(store)
-        }
+    }
+    private func close() {
+        if let onCancel { onCancel() } else { dismiss() }
     }
 }
 
