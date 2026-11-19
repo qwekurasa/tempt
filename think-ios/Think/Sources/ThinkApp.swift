@@ -3,12 +3,14 @@ import UIKit
 import CoreImage.CIFilterBuiltins
 
 enum Theme {
-    static let paper = Color(red: 1, green: 1, blue: 0.995)
-    static let ink = Color(red: 0.20, green: 0.20, blue: 0.19)
-    static let muted = Color(red: 0.58, green: 0.58, blue: 0.56)
-    static let panel = Color(red: 0.972, green: 0.973, blue: 0.962)
-    static let yellow = Color(red: 1, green: 0.84, blue: 0.22)
-    static let line = Color(red: 0.91, green: 0.91, blue: 0.89)
+    static let paper = Color(red: 0.997, green: 0.994, blue: 1)
+    static let ink = Color(red: 0.17, green: 0.16, blue: 0.21)
+    static let muted = Color(red: 0.54, green: 0.52, blue: 0.59)
+    static let panel = Color(red: 0.964, green: 0.959, blue: 0.980)
+    static let yellow = Color(red: 0.63, green: 0.30, blue: 0.90)
+    static let purple = Color(red: 0.61, green: 0.24, blue: 0.91)
+    static let purpleLight = Color(red: 0.91, green: 0.79, blue: 0.99)
+    static let line = Color(red: 0.90, green: 0.89, blue: 0.92)
 }
 
 struct ThinkStar: Shape {
@@ -47,7 +49,7 @@ struct ThinkLogo: View {
                 ThinkStar().fill(Theme.yellow).frame(width: 13, height: 13).offset(x: 1, y: -4)
             }.frame(width: 37, height: 38)
             if !compact {
-                Text("think").font(.system(size: 27, weight: .regular, design: .serif))
+                Text("Think").font(.system(size: 27, weight: .regular, design: .serif))
                     .tracking(-1.5).foregroundStyle(Theme.ink)
             }
         }.accessibilityElement(children: .combine)
@@ -98,7 +100,7 @@ struct ThinkApp: App {
     @StateObject private var store = IdeaStore()
     var body: some Scene {
         WindowGroup {
-            RootScreen().environmentObject(store).preferredColorScheme(.light)
+            PremiumRootScreen().environmentObject(store).preferredColorScheme(.light)
         }
     }
 }
