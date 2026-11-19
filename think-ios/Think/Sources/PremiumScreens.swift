@@ -186,15 +186,14 @@ struct PremiumHomeScreen: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let orbSide = min(min(geometry.size.width * 0.86, geometry.size.height * 0.56), 350)
+            let orbSide = min(min(geometry.size.width * 0.90, geometry.size.height * 0.56), 355)
 
             VStack(spacing: 0) {
-                Spacer(minLength: 12)
-
                 ThinkWordmark()
-                    .frame(height: 68)
+                    .frame(width: 192, height: 46)
+                    .padding(.top, 14)
 
-                Spacer(minLength: 18)
+                Spacer(minLength: 24)
 
                 Button(action: voice) {
                     ThinkLivingOrb()
@@ -205,7 +204,7 @@ struct PremiumHomeScreen: View {
                 .frame(maxWidth: .infinity)
                 .accessibilityLabel("О чём ты думаешь? Нажми на шар, чтобы начать запись идеи")
 
-                Spacer(minLength: 18)
+                Spacer(minLength: 23)
 
                 VStack(spacing: 10) {
                     Text("О чём ты думаешь?")
@@ -221,7 +220,7 @@ struct PremiumHomeScreen: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 22)
 
-                Spacer(minLength: 48)
+                Spacer(minLength: 56)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -229,25 +228,87 @@ struct PremiumHomeScreen: View {
     }
 }
 
+/// Original vector lettering in the geometric, monoline spirit of the
+/// reference wordmark. This is not a font file or a bitmap.
 private struct ThinkWordmark: View {
     var body: some View {
-        HStack(alignment: .top, spacing: 1) {
-            Text("think")
-                .font(.system(size: 51, weight: .semibold, design: .rounded))
-                .tracking(-3.8)
-                .foregroundStyle(Color(red: 0.045, green: 0.04, blue: 0.06))
-            VStack(spacing: 1) {
-                Image(systemName: "sparkle")
-                    .font(.system(size: 17, weight: .semibold))
-                Image(systemName: "sparkle")
-                    .font(.system(size: 7, weight: .semibold))
-                    .offset(x: 8, y: -3)
-            }
-            .foregroundStyle(Color(red: 0.045, green: 0.04, blue: 0.06))
-            .padding(.top, 3)
+        Canvas(opaque: false) { context, size in
+            let scale = min(size.width / 294.0, size.height / 70.0)
+            let transform = CGAffineTransform(scaleX: scale, y: scale)
+            var letters = Path()
+
+            // t
+            letters.move(to: CGPoint(x: 26, y: 9))
+            letters.addLine(to: CGPoint(x: 26, y: 58))
+            letters.move(to: CGPoint(x: 9, y: 25))
+            letters.addLine(to: CGPoint(x: 43, y: 25))
+
+            // h: a straight ascender, circular shoulder, clean terminal.
+            letters.move(to: CGPoint(x: 59, y: 8))
+            letters.addLine(to: CGPoint(x: 59, y: 59))
+            letters.move(to: CGPoint(x: 59, y: 39))
+            letters.addCurve(to: CGPoint(x: 98, y: 40),
+                             control1: CGPoint(x: 65, y: 16),
+                             control2: CGPoint(x: 98, y: 17))
+            letters.addLine(to: CGPoint(x: 98, y: 59))
+
+            // i
+            letters.move(to: CGPoint(x: 120, y: 27))
+            letters.addLine(to: CGPoint(x: 120, y: 59))
+
+            // n
+            letters.move(to: CGPoint(x: 144, y: 27))
+            letters.addLine(to: CGPoint(x: 144, y: 59))
+            letters.move(to: CGPoint(x: 144, y: 40))
+            letters.addCurve(to: CGPoint(x: 184, y: 40),
+                             control1: CGPoint(x: 151, y: 17),
+                             control2: CGPoint(x: 184, y: 17))
+            letters.addLine(to: CGPoint(x: 184, y: 59))
+
+            // k: long stem and open geometric diagonals.
+            letters.move(to: CGPoint(x: 209, y: 8))
+            letters.addLine(to: CGPoint(x: 209, y: 59))
+            letters.move(to: CGPoint(x: 245, y: 27))
+            letters.addLine(to: CGPoint(x: 210, y: 45))
+            letters.addLine(to: CGPoint(x: 247, y: 59))
+
+            let black = Color(red: 0.035, green: 0.035, blue: 0.044)
+            context.stroke(
+                letters.applying(transform),
+                with: .color(black),
+                style: StrokeStyle(lineWidth: 9.4 * scale,
+                                   lineCap: .round, lineJoin: .round)
+            )
+            context.fill(
+                Path(ellipseIn: CGRect(x: 115, y: 7, width: 10, height: 10)).applying(transform),
+                with: .color(black)
+            )
+            context.fill(
+                sparkle(center: CGPoint(x: 264, y: 15), size: 17).applying(transform),
+                with: .color(black)
+            )
+            context.fill(
+                sparkle(center: CGPoint(x: 284, y: 2), size: 6).applying(transform),
+                with: .color(black)
+            )
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Think")
+        .accessibilityLabel("think")
+    }
+
+    private func sparkle(center: CGPoint, size: CGFloat) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: center.x, y: center.y - size))
+        path.addQuadCurve(to: CGPoint(x: center.x + size, y: center.y),
+                          control: CGPoint(x: center.x + size * 0.21, y: center.y - size * 0.21))
+        path.addQuadCurve(to: CGPoint(x: center.x, y: center.y + size),
+                          control: CGPoint(x: center.x + size * 0.21, y: center.y + size * 0.21))
+        path.addQuadCurve(to: CGPoint(x: center.x - size, y: center.y),
+                          control: CGPoint(x: center.x - size * 0.21, y: center.y + size * 0.21))
+        path.addQuadCurve(to: CGPoint(x: center.x, y: center.y - size),
+                          control: CGPoint(x: center.x - size * 0.21, y: center.y - size * 0.21))
+        path.closeSubpath()
+        return path
     }
 }
 
