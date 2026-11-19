@@ -243,7 +243,7 @@ struct ThinkLivingOrb: View {
             endPoint: CGPoint(x: center.x + radius, y: center.y + radius)
         )
         context.drawLayer { glow in
-            glow.addFilter(.blur(radius: 13 + 2 * sin(time * 0.8)))
+            glow.addFilter(.blur(radius: CGFloat(13 + 2 * sin(time * 0.8))))
             glow.stroke(sphere, with: gradient, lineWidth: 5.5)
         }
         context.stroke(sphere, with: gradient, lineWidth: 1.35)
