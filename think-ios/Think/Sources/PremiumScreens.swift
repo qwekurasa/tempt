@@ -186,7 +186,7 @@ struct PremiumHomeScreen: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let orbSide = min(geometry.size.width * 0.86, geometry.size.height * 0.56, 350)
+            let orbSide = min(min(geometry.size.width * 0.86, geometry.size.height * 0.56), 350)
 
             VStack(spacing: 0) {
                 Spacer(minLength: 12)
