@@ -63,34 +63,195 @@ struct Idea: Codable, Identifiable, Equatable {
     var updatedAt: Date = Date()
 }
 
+struct IdeaEnergy: Codable {
+    var lastTouched: Date
+    var lastReviewReward: Date
+    var accruedStars: Int
+    var protectedUntil: Date?
+    var pinned: Bool = false
+
+    func deadline() -> Date {
+        let normal = lastTouched.addingTimeInterval(7 * 24 * 3600)
+        return max(normal, protectedUntil ?? .distantPast)
+    }
+}
+
+struct FadedIdea: Codable, Identifiable {
+    let idea: Idea
+    let fadedAt: Date
+    var id: UUID { idea.id }
+}
+
+@MainActor
 final class IdeaStore: ObservableObject {
-    @Published var ideas: [Idea] = [] { didSet { saveIdeas() } }
-    @Published var stars: Int = 0 { didSet { UserDefaults.standard.set(stars, forKey: "think-stars") } }
+    @Published var ideas: [Idea] = [] { didSet { persistIdeas() } }
+    @Published var stars: Int = 0 {
+        didSet { UserDefaults.standard.set(stars, forKey: "think-stars") }
+    }
+    @Published var energy: [String: IdeaEnergy] = [:] {
+        didSet { persistEnergy() }
+    }
+    @Published var faded: [FadedIdea] = [] {
+        didSet { persistFaded() }
+    }
+    @Published var qrStyleUnlocked: Bool = false {
+        didSet { UserDefaults.standard.set(qrStyleUnlocked, forKey: "think-purple-qr-unlocked") }
+    }
+
     init() {
+        let decoder = JSONDecoder()
         if let data = UserDefaults.standard.data(forKey: "think-ideas"),
-           let saved = try? JSONDecoder().decode([Idea].self, from: data) {
+           let saved = try? decoder.decode([Idea].self, from: data) {
             ideas = saved
         }
         stars = UserDefaults.standard.integer(forKey: "think-stars")
+        if let data = UserDefaults.standard.data(forKey: "think-energy-v12"),
+           let saved = try? decoder.decode([String: IdeaEnergy].self, from: data) {
+            energy = saved
+        }
+        if let data = UserDefaults.standard.data(forKey: "think-faded-v12"),
+           let saved = try? decoder.decode([FadedIdea].self, from: data) {
+            faded = saved
+        }
+        qrStyleUnlocked = UserDefaults.standard.bool(forKey: "think-purple-qr-unlocked")
+        // Existing v1.1 ideas receive a new seven-day grace period after upgrading.
+        for idea in ideas where energy[idea.id.uuidString] == nil {
+            energy[idea.id.uuidString] = IdeaEnergy(
+                lastTouched: Date(),
+                lastReviewReward: Date(),
+                accruedStars: 0
+            )
+        }
+        refreshLifecycle()
     }
+
     func save(_ text: String, existing: Idea?) {
         let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return }
         if let existing, let index = ideas.firstIndex(where: { $0.id == existing.id }) {
-            if ideas[index].text != cleaned {
-                ideas[index].text = cleaned
-                ideas[index].updatedAt = Date()
-                stars += 2
+            guard ideas[index].text != cleaned else {
+                touch(existing.id, allowReward: false)
+                return
             }
+            ideas[index].text = cleaned
+            ideas[index].updatedAt = Date()
+            award(3, to: existing.id)
+            touch(existing.id, allowReward: false)
         } else {
-            ideas.insert(Idea(text: cleaned), at: 0)
-            stars += 5
+            let idea = Idea(text: cleaned)
+            energy[idea.id.uuidString] = IdeaEnergy(
+                lastTouched: Date(),
+                lastReviewReward: Date(),
+                accruedStars: 0
+            )
+            ideas.insert(idea, at: 0)
+            award(10, to: idea.id)
         }
     }
-    func delete(_ id: UUID) { ideas.removeAll { $0.id == id } }
-    private func saveIdeas() {
+
+    func touch(_ id: UUID, allowReward: Bool = true) {
+        let key = id.uuidString
+        guard var record = energy[key] else { return }
+        let now = Date()
+        if allowReward && now.timeIntervalSince(record.lastReviewReward) >= 24 * 3600 {
+            record.lastReviewReward = now
+            record.accruedStars += 2
+            stars += 2
+        }
+        record.lastTouched = now
+        energy[key] = record
+    }
+
+    func energyFor(_ idea: Idea) -> IdeaEnergy {
+        energy[idea.id.uuidString] ??
+        IdeaEnergy(lastTouched: Date(), lastReviewReward: Date(), accruedStars: 0)
+    }
+
+    func remaining(_ idea: Idea) -> TimeInterval {
+        energyFor(idea).deadline().timeIntervalSinceNow
+    }
+
+    func isFading(_ idea: Idea) -> Bool {
+        remaining(idea) <= 24 * 3600
+    }
+
+    func refreshLifecycle() {
+        let now = Date()
+        let expired = ideas.filter { energyFor($0).deadline() <= now }
+        guard !expired.isEmpty else { return }
+        for idea in expired {
+            let record = energyFor(idea)
+            stars = max(0, stars - record.accruedStars)
+            faded.insert(FadedIdea(idea: idea, fadedAt: now), at: 0)
+            energy.removeValue(forKey: idea.id.uuidString)
+        }
+        let ids = Set(expired.map(\.id))
+        ideas.removeAll { ids.contains($0.id) }
+    }
+
+    func protect(_ id: UUID, days: Int, cost: Int) -> Bool {
+        guard stars >= cost, ideas.contains(where: { $0.id == id }),
+              var record = energy[id.uuidString] else { return false }
+        let start = max(Date(), record.protectedUntil ?? .distantPast)
+        record.protectedUntil = start.addingTimeInterval(TimeInterval(days) * 86400)
+        energy[id.uuidString] = record
+        stars -= cost
+        return true
+    }
+
+    func pin(_ id: UUID) -> Bool {
+        guard stars >= 20, var record = energy[id.uuidString], !record.pinned else { return false }
+        record.pinned = true
+        energy[id.uuidString] = record
+        stars -= 20
+        return true
+    }
+
+    func unlockQR() -> Bool {
+        guard !qrStyleUnlocked, stars >= 45 else { return false }
+        stars -= 45
+        qrStyleUnlocked = true
+        return true
+    }
+
+    func recover(_ id: UUID) -> Bool {
+        guard stars >= 60, let idx = faded.firstIndex(where: { $0.id == id }) else { return false }
+        let restored = faded.remove(at: idx).idea
+        energy[id.uuidString] = IdeaEnergy(lastTouched: Date(), lastReviewReward: Date(), accruedStars: 0)
+        ideas.insert(restored, at: 0)
+        stars -= 60
+        return true
+    }
+
+    func delete(_ id: UUID) {
+        let earned = energy[id.uuidString]?.accruedStars ?? 0
+        stars = max(0, stars - earned)
+        energy.removeValue(forKey: id.uuidString)
+        ideas.removeAll { $0.id == id }
+    }
+
+    private func award(_ amount: Int, to id: UUID) {
+        guard var record = energy[id.uuidString] else { return }
+        record.accruedStars += amount
+        energy[id.uuidString] = record
+        stars += amount
+    }
+
+    private func persistIdeas() {
         if let data = try? JSONEncoder().encode(ideas) {
             UserDefaults.standard.set(data, forKey: "think-ideas")
+        }
+    }
+
+    private func persistEnergy() {
+        if let data = try? JSONEncoder().encode(energy) {
+            UserDefaults.standard.set(data, forKey: "think-energy-v12")
+        }
+    }
+
+    private func persistFaded() {
+        if let data = try? JSONEncoder().encode(faded) {
+            UserDefaults.standard.set(data, forKey: "think-faded-v12")
         }
     }
 }
