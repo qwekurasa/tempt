@@ -340,7 +340,7 @@ struct PremiumIdeasScreen: View {
     private var ideas: [Idea] {
         store.ideas
             .filter { query.isEmpty || $0.text.localizedCaseInsensitiveContains(query) }
-            .sorted { $0.updatedAt > $1.updatedAt }
+            .sorted { store.energyFor($0).lastTouched > store.energyFor($1).lastTouched }
     }
 
     var body: some View {
@@ -392,7 +392,7 @@ struct PremiumIdeasScreen: View {
                                 VStack(alignment: .leading, spacing: 18) {
                                     HStack {
                                         ThinkStar().fill(Theme.purple).frame(width: 14, height: 14)
-                                        Text("ИДЕЯ")
+                                        Text(store.energyFor(idea).pinned ? "ВАЖНАЯ ИДЕЯ" : "ИДЕЯ")
                                             .font(.system(size: 10, weight: .medium))
                                             .tracking(1.2)
                                         Spacer()
@@ -403,9 +403,18 @@ struct PremiumIdeasScreen: View {
                                         .font(.system(size: 17))
                                         .foregroundStyle(Theme.ink)
                                         .multilineTextAlignment(.leading).lineLimit(4)
-                                    Text(idea.updatedAt, style: .date)
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(Theme.muted)
+                                    HStack(spacing: 8) {
+                                        Text(store.energyFor(idea).lastTouched, style: .date)
+                                        Spacer()
+                                        if store.isFading(idea) {
+                                            Label("Угасает", systemImage: "hourglass")
+                                                .foregroundStyle(Theme.purple)
+                                        } else {
+                                            Text("ещё \(max(1, Int(ceil(store.remaining(idea) / 86400)))) дн.")
+                                        }
+                                    }
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Theme.muted)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(19)
@@ -666,6 +675,13 @@ struct PremiumIdeaDetail: View {
                             Text(current.createdAt, format: .dateTime.day().month(.wide).year())
                                 .font(.system(size: 12))
                                 .foregroundStyle(Theme.muted)
+                            HStack {
+                                Image(systemName: "hourglass")
+                                Text(store.isFading(current) ? "Идея скоро угаснет" :
+                                    "Идея активна — возвращайся к ней раз в неделю")
+                            }
+                            .font(.system(size: 12))
+                            .foregroundStyle(store.isFading(current) ? Theme.purple : Theme.muted)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 29)
@@ -706,13 +722,14 @@ struct PremiumIdeaDetail: View {
                 }
             }
         }
-        .sheet(isPresented: $editing) {
+        .fullScreenCover(isPresented: $editing) {
             PremiumTextEditor(initialText: current.text, existing: current)
                 .environmentObject(store)
         }
-        .sheet(isPresented: $qr) {
+        .fullScreenCover(isPresented: $qr) {
             PremiumQRScreen(text: current.text)
         }
+        .onAppear { store.touch(idea.id) }
         .confirmationDialog("Удалить эту идею?", isPresented: $deleteConfirm) {
             Button("Удалить", role: .destructive) {
                 store.delete(idea.id)
