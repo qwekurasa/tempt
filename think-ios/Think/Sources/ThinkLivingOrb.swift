@@ -22,7 +22,7 @@ struct ThinkLivingOrb: View {
                 drawSphere(in: &context, center: center, radius: radius, time: t, reveal: reveal)
                 drawRibbons(in: &context, center: center, radius: radius, time: t, reveal: reveal)
                 drawOrbitSparks(in: &context, center: center, radius: radius, time: t, reveal: reveal)
-                drawRim(in: &context, center: center, radius: radius, time: t, reveal: reveal)
+                // No outline: the light is allowed to feather naturally into white.
             }
             .drawingGroup(opaque: false, colorMode: .linear)
             .accessibilityHidden(true)
@@ -56,46 +56,55 @@ struct ThinkLivingOrb: View {
     private func drawSphere(in context: inout GraphicsContext,
                             center: CGPoint, radius: CGFloat,
                             time: Double, reveal: Double) {
-        let rect = CGRect(x: center.x - radius, y: center.y - radius,
-                          width: radius * 2, height: radius * 2)
-        let sphere = Path(ellipseIn: rect)
-        let light = CGPoint(x: center.x - radius * 0.27 + CGFloat(0.035 * sin(time * 0.22)) * radius,
-                            y: center.y - radius * 0.36)
+        // There is deliberately no solid circle or border.
+        // The core fades to fully transparent before reaching its outer bounds.
+        let fadeRadius = radius * 1.38
+        let softCore = Path(ellipseIn: CGRect(
+            x: center.x - fadeRadius, y: center.y - fadeRadius,
+            width: fadeRadius * 2, height: fadeRadius * 2
+        ))
+        let light = CGPoint(
+            x: center.x + CGFloat(sin(time * 0.24)) * radius * 0.10,
+            y: center.y - radius * 0.10
+        )
         context.fill(
-            sphere,
+            softCore,
             with: .radialGradient(
-                Gradient(colors: [
-                    Color(red: 0.12, green: 0.10, blue: 0.22),
-                    Color(red: 0.045, green: 0.035, blue: 0.095),
-                    Color(red: 0.012, green: 0.018, blue: 0.045),
-                    Color(red: 0.025, green: 0.018, blue: 0.055)
+                Gradient(stops: [
+                    .init(color: Color(red: 0.09, green: 0.07, blue: 0.21).opacity(0.77 * reveal), location: 0),
+                    .init(color: Color(red: 0.14, green: 0.11, blue: 0.30).opacity(0.63 * reveal), location: 0.36),
+                    .init(color: Color(red: 0.30, green: 0.17, blue: 0.53).opacity(0.24 * reveal), location: 0.68),
+                    .init(color: Color(red: 0.47, green: 0.28, blue: 0.78).opacity(0.04 * reveal), location: 0.91),
+                    .init(color: .clear, location: 1)
                 ]),
                 center: light,
-                startRadius: 1,
-                endRadius: radius * 1.32
+                startRadius: 0,
+                endRadius: fadeRadius
             )
         )
 
-        var shade = context
-        shade.clip(to: sphere)
+        // Soft, internal glass highlight without any hard ellipse cutoff.
         let sheen = Path(ellipseIn: CGRect(
-            x: center.x - radius * 0.95,
-            y: center.y - radius * 1.03,
-            width: radius * 1.38,
-            height: radius * 0.68
+            x: center.x - radius * 0.86,
+            y: center.y - radius * 0.95,
+            width: radius * 1.37,
+            height: radius * 0.62
         ))
-        shade.fill(
-            sheen,
-            with: .linearGradient(
-                Gradient(colors: [
-                    .white.opacity(0.18 * reveal),
-                    Color(red: 0.56, green: 0.67, blue: 1).opacity(0.055 * reveal),
-                    .clear
-                ]),
-                startPoint: CGPoint(x: center.x - radius, y: center.y - radius),
-                endPoint: CGPoint(x: center.x + radius * 0.45, y: center.y - radius * 0.15)
+        context.drawLayer { glow in
+            glow.addFilter(.blur(radius: radius * 0.19))
+            glow.fill(
+                sheen,
+                with: .linearGradient(
+                    Gradient(colors: [
+                        .white.opacity(0.27 * reveal),
+                        Color(red: 0.68, green: 0.79, blue: 1).opacity(0.10 * reveal),
+                        .clear
+                    ]),
+                    startPoint: CGPoint(x: center.x - radius, y: center.y - radius),
+                    endPoint: CGPoint(x: center.x + radius * 0.45, y: center.y - radius * 0.10)
+                )
             )
-        )
+        }
     }
 
     private func drawRibbons(in context: inout GraphicsContext,
@@ -121,10 +130,8 @@ struct ThinkLivingOrb: View {
             ]
         ]
 
-        let sphere = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius,
-                                            width: radius * 2, height: radius * 2))
+        // No hard clipping to a circular silhouette: light blends into the background.
         var clipped = context
-        clipped.clip(to: sphere)
 
         for index in 0..<3 {
             let phase = time * (0.42 + Double(index) * 0.075) + Double(index) * 2.05
@@ -222,41 +229,6 @@ struct ThinkLivingOrb: View {
                 glow.fill(star, with: .color(tint.opacity(0.78 * reveal)))
             }
             context.fill(star, with: .color(.white.opacity(0.9 * reveal)))
-        }
-    }
-
-    private func drawRim(in context: inout GraphicsContext,
-                         center: CGPoint, radius: CGFloat,
-                         time: Double, reveal: Double) {
-        let sphere = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius,
-                                            width: radius * 2, height: radius * 2))
-        let colors = [
-            Color(red: 0.40, green: 0.76, blue: 1.0),
-            Color(red: 0.78, green: 0.57, blue: 1.0),
-            Color(red: 1.0, green: 0.55, blue: 0.82),
-            Color(red: 0.78, green: 0.72, blue: 1.0),
-            Color(red: 0.40, green: 0.76, blue: 1.0)
-        ].map { $0.opacity(0.58 + 0.35 * reveal) }
-        let gradient = GraphicsContext.Shading.linearGradient(
-            Gradient(colors: colors),
-            startPoint: CGPoint(x: center.x - radius, y: center.y - radius),
-            endPoint: CGPoint(x: center.x + radius, y: center.y + radius)
-        )
-        context.drawLayer { glow in
-            glow.addFilter(.blur(radius: CGFloat(13 + 2 * sin(time * 0.8))))
-            glow.stroke(sphere, with: gradient, lineWidth: 5.5)
-        }
-        context.stroke(sphere, with: gradient, lineWidth: 1.35)
-
-        // Small specular glint that travels along the upper-left rim.
-        let glintAngle = -2.1 + 0.18 * sin(time * 0.35)
-        let glintCenter = CGPoint(x: center.x + CGFloat(cos(glintAngle)) * radius,
-                                  y: center.y + CGFloat(sin(glintAngle)) * radius)
-        let glint = Path(ellipseIn: CGRect(x: glintCenter.x - 3.2, y: glintCenter.y - 3.2,
-                                           width: 6.4, height: 6.4))
-        context.drawLayer { glow in
-            glow.addFilter(.blur(radius: 8))
-            glow.fill(glint, with: .color(.white.opacity(0.85)))
         }
     }
 
